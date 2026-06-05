@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
 import { pushLocalNotif } from "@/lib/claimStore";
+import { apiInviteToThread } from "@/lib/apiClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,13 +167,17 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
     saveThread(updated);
     setThread(updated);
 
-    // Push notification to the invited Finance member
+    // Push notification — localStorage (same browser) + MySQL backend (cross-session)
     pushLocalNotif({
-      forEmail:  invitee.email,
-      title:     `You've been invited to a claim discussion`,
-      body:      `${currentUser.name} invited you to discuss ${claimReference}.`,
-      claimRef:  claimId,
-      read:      false,
+      forEmail: invitee.email,
+      title:    `You've been invited to a claim discussion`,
+      body:     `${currentUser.name} invited you to discuss ${claimReference}.`,
+      claimRef: claimId,
+      read:     false,
+    });
+    // Also notify via backend so the bell works in any session
+    apiInviteToThread(currentUser.email, claimId, invitee.email).catch(() => {
+      // Backend unavailable — localStorage notification still works on same device
     });
 
     setShowInvite(false);

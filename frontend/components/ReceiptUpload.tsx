@@ -169,8 +169,10 @@ async function prepareReceipt(file: File): Promise<PreparedReceipt> {
   }
 
   if (file.type === "application/pdf") {
+    // Create blob URL so Finance can download the PDF (converted to base64 on submit)
     return {
       ...baseReceipt,
+      previewUrl: URL.createObjectURL(file),
       status: "ready",
       message: "Ready"
     };
