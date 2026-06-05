@@ -80,7 +80,7 @@ export async function updateStatus(req: Request, res: Response, next: NextFuncti
       [s, s === "REJECTED" ? (rejectReason ?? "") : null, req.params.id]
     );
 
-    // Notify employee
+    // Notify employee (employee_id is always a real user id)
     await run(
       `INSERT INTO notifications (id, user_id, type, title, body, claim_id, is_read)
        VALUES (?, ?, ?, ?, ?, ?, 0)`,

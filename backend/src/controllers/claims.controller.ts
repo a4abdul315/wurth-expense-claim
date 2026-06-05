@@ -164,16 +164,24 @@ export async function submitClaim(req: Request, res: Response, next: NextFunctio
     );
 
     // Create notification for assigned Finance person
-    const assignedId = existing.assigned_finance_id as string;
-    if (assignedId) {
-      await run(
-        `INSERT INTO notifications (id, user_id, type, title, body, claim_id, is_read)
-         VALUES (?, ?, 'CLAIM_ASSIGNED', ?, ?, ?, 0)`,
-        [uid(), assignedId,
-         `New claim from ${req.user!.name}`,
-         `${reference} · AED ${totalAed.toFixed(2)} — assigned to you for review.`,
-         req.params.id]
-      );
+    // assigned_finance_id may be an email (from frontend) — resolve to user id
+    const assignedRaw = existing.assigned_finance_id as string;
+    if (assignedRaw) {
+      // Try to find user by id first, then by email
+      const [byId]    = await query<{id:string}>(`SELECT id FROM users WHERE id = ?`,    [assignedRaw]);
+      const [byEmail] = await query<{id:string}>(`SELECT id FROM users WHERE email = ?`, [assignedRaw]);
+      const assignedUserId = byId?.id ?? byEmail?.id;
+
+      if (assignedUserId) {
+        await run(
+          `INSERT INTO notifications (id, user_id, type, title, body, claim_id, is_read)
+           VALUES (?, ?, 'CLAIM_ASSIGNED', ?, ?, ?, 0)`,
+          [uid(), assignedUserId,
+           `New claim from ${req.user!.name}`,
+           `${reference} · AED ${totalAed.toFixed(2)} — assigned to you for review.`,
+           req.params.id]
+        );
+      }
     }
 
     const claim = await buildClaim(req.params.id);

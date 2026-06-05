@@ -111,12 +111,35 @@ export default function NewClaimPage() {
     setCategories(data.categories);
   }
 
+  /** Convert a blob: URL to a base64 data URL so it survives across tabs/sessions */
+  async function blobToBase64(url: string | null): Promise<string | null> {
+    if (!url || !url.startsWith("blob:")) return url;
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror  = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  }
+
   async function handleSubmit() {
     if (totals.totalAed === 0) return;
     setLoading(true);
 
     const user    = getCurrentUser();
     const finance = FINANCE_TEAM.find((f) => f.id === assignedFinanceId)!;
+
+    // Convert blob URLs → base64 data URLs (persists across tabs so Finance can view)
+    const persistedReceipts = await Promise.all(
+      receipts.map(async (r) => ({
+        ...r,
+        previewUrl: await blobToBase64(r.previewUrl),
+      }))
+    );;
 
     try {
       // Submit to MySQL via Express backend
@@ -133,19 +156,19 @@ export default function NewClaimPage() {
         ),
         notes,
         assignedFinanceId: finance.email, // backend matches by email
-        receipts: receipts.map((r) => ({ name: r.name, size: r.size, type: r.type })),
+        receipts: persistedReceipts.map((r) => ({ name: r.name, size: r.size, type: r.type })),
       });
 
       const ref = String(submitted.reference ?? generateRef());
 
-      // Also save to localStorage for real-time Finance dashboard badge
+      // Save to localStorage with base64 images so Finance can view them
       saveLiveClaim({
         id: String(submitted.id ?? ref), reference: ref,
         employee: user.name, department: user.department, email: user.email,
         amountAed: totals.totalAed, submittedAt: Date.now(), status: "Submitted",
         assignedFinanceId: finance.id, assignedFinanceName: finance.name,
         assignedFinanceEmail: finance.email,
-        receipts: receipts as ReceiptMeta[], notes,
+        receipts: persistedReceipts as ReceiptMeta[], notes,
       });
 
       setReference(ref);
@@ -158,7 +181,7 @@ export default function NewClaimPage() {
         email: user.email, amountAed: totals.totalAed, submittedAt: Date.now(),
         status: "Submitted", assignedFinanceId: finance.id,
         assignedFinanceName: finance.name, assignedFinanceEmail: finance.email,
-        receipts: receipts as ReceiptMeta[], notes,
+        receipts: persistedReceipts as ReceiptMeta[], notes,
       });
       pushLocalNotif({
         forEmail: finance.email, title: `New claim from ${user.name}`,
