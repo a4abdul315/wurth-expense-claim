@@ -2,107 +2,81 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "@/lib/mockUser";
+import {
+  readLocalNotifs, markNotifRead, markAllNotifsRead,
+  getUnreadCount, type LocalNotif,
+} from "@/lib/claimStore";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-
-interface Notif {
-  id:        string;
-  type:      string;
-  title:     string;
-  body:      string;
-  claimId:   string | null;
-  read:      boolean;
-  createdAt: string;
-}
-
-function timeAgo(iso: string) {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+function timeAgo(ms: number) {
+  const s = Math.floor((Date.now() - ms) / 1000);
   if (s < 60)    return "just now";
   if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-}
-
-function typeIcon(type: string) {
-  if (type === "CLAIM_ASSIGNED")   return "📋";
-  if (type === "THREAD_MESSAGE")   return "💬";
-  if (type === "THREAD_INVITE")    return "👤";
-  if (type === "CLAIM_APPROVED")   return "✅";
-  if (type === "CLAIM_REJECTED")   return "❌";
-  return "🔔";
+  return new Date(ms).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 }
 
 export function NotificationBell() {
-  const [notifs,  setNotifs]  = useState<Notif[]>([]);
+  const [notifs,  setNotifs]  = useState<LocalNotif[]>([]);
   const [unread,  setUnread]  = useState(0);
   const [open,    setOpen]    = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef  = useRef<HTMLDivElement>(null);
+  const prevCount = useRef(0);
 
-  // Auth header built from the current session — updates when user changes
-  const auth = `Bearer mock:${getCurrentUser().email}`;
+  function refresh() {
+    const user    = getCurrentUser();
+    const mine    = readLocalNotifs().filter((n) => n.forEmail === user.email);
+    const count   = mine.filter((n) => !n.read).length;
 
-  async function fetchNotifs() {
-    try {
-      const res = await fetch(`${API}/notifications`, { headers: { Authorization: auth } });
-      if (!res.ok) return;
-      const body = await res.json();
-      const newUnread: number = body.meta?.unread ?? 0;
-
-      // Browser popup notification for new items
-      if (newUnread > unread && typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "granted") {
-          const newest = (body.data as Notif[]).find((n) => !n.read);
-          if (newest) {
-            new Notification("Würth Expense Claims", {
-              body: newest.title,
-              icon: "/icon.svg",
-            });
-          }
-        } else if (Notification.permission !== "denied") {
-          Notification.requestPermission();
+    // Browser push notification when a new one arrives
+    if (count > prevCount.current && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        const newest = mine.find((n) => !n.read);
+        if (newest) {
+          new Notification("Würth Expense Claims", {
+            body: newest.title,
+            icon: "/icon.svg",
+          });
         }
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission();
       }
-
-      setNotifs(body.data ?? []);
-      setUnread(newUnread);
-    } catch {
-      // silently fail — notifications are non-critical
     }
+
+    prevCount.current = count;
+    setNotifs(mine);
+    setUnread(count);
   }
 
   useEffect(() => {
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 10000); // poll every 10s
-    return () => clearInterval(interval);
+    refresh();
+    const interval = setInterval(refresh, 3000);
+    window.addEventListener("storage", refresh);
+    return () => { clearInterval(interval); window.removeEventListener("storage", refresh); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close panel when clicking outside
+  // Close on outside click
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    function onClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  async function handleMarkAll() {
-    await fetch(`${API}/notifications/read-all`, { method: "POST", headers: { Authorization: auth } });
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnread(0);
+  function handleMarkAll() {
+    markAllNotifsRead(getCurrentUser().email);
+    refresh();
   }
 
-  async function handleMarkOne(id: string) {
-    await fetch(`${API}/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: auth } });
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
-    setUnread((prev) => Math.max(0, prev - 1));
+  function handleMarkOne(id: string) {
+    markNotifRead(id);
+    refresh();
   }
 
   return (
     <div className="relative" ref={panelRef}>
-      {/* Bell button */}
+      {/* Bell */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -113,19 +87,17 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
         {unread > 0 && (
-          <span
-            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
-            style={{ background: "#CC0000" }}
-          >
+          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+            style={{ background: "#CC0000" }}>
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-line bg-white shadow-xl"
-          style={{ animation: "fadeIn 0.15s ease" }}>
+        <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-line bg-white shadow-xl"
+          style={{ animation: "fadeIn .15s ease" }}>
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <p className="text-sm font-bold text-ink">Notifications</p>
             {unread > 0 && (
@@ -138,16 +110,12 @@ export function NotificationBell() {
 
           <div className="max-h-80 overflow-y-auto divide-y divide-line">
             {notifs.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications yet</p>
+              <p className="px-4 py-8 text-center text-sm text-slate-400">No notifications yet</p>
             ) : notifs.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                onClick={() => handleMarkOne(n.id)}
-                className={`w-full px-4 py-3 text-left transition hover:bg-slate-50 ${n.read ? "opacity-60" : ""}`}
-              >
+              <button key={n.id} type="button" onClick={() => handleMarkOne(n.id)}
+                className={`w-full px-4 py-3 text-left transition hover:bg-slate-50 ${n.read ? "opacity-60" : ""}`}>
                 <div className="flex items-start gap-3">
-                  <span className="text-base leading-none mt-0.5">{typeIcon(n.type)}</span>
+                  <span className="text-base mt-0.5">📋</span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm truncate ${n.read ? "text-slate-500" : "font-semibold text-ink"}`}>
                       {n.title}
@@ -164,6 +132,8 @@ export function NotificationBell() {
           </div>
         </div>
       )}
+
+      <style>{`@keyframes fadeIn { from{opacity:0} to{opacity:1} }`}</style>
     </div>
   );
 }

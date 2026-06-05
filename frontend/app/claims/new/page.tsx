@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { ClaimLineItemsForm, type ExpenseCategory } from "@/components/ClaimLineItemsForm";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
-import { saveLiveClaim } from "@/lib/claimStore";
+import { saveLiveClaim, pushLocalNotif } from "@/lib/claimStore";
 
 function generateRef() {
   return `WPS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 8999)}`;
@@ -98,20 +98,35 @@ export default function NewClaimPage() {
   function handleSubmit() {
     if (totals.totalAed === 0) return;
     setLoading(true);
-    // PRODUCTION: POST /api/claims → POST /api/claims/:id/submit → generate PDF → email Finance
-    setTimeout(() => {
-      const ref = generateRef();
 
-      // Save to localStorage so Finance dashboard shows it in real-time
+    // PRODUCTION: POST /api/claims/:id/submit → PDF generated → email Finance
+    setTimeout(() => {
+      const ref      = generateRef();
+      const user     = getCurrentUser();
+      const finance  = FINANCE_TEAM.find((f) => f.id === assignedFinanceId)!;
+
+      // 1. Save claim to localStorage (Finance dashboard picks it up in real-time)
       saveLiveClaim({
-        id: ref,
-        reference: ref,
-        employee: getCurrentUser().name,
-        department: getCurrentUser().department,
-        email: getCurrentUser().email,
-        amountAed: totals.totalAed,
-        submittedAt: Date.now(),
-        status: "Submitted",
+        id:                   ref,
+        reference:            ref,
+        employee:             user.name,
+        department:           user.department,
+        email:                user.email,
+        amountAed:            totals.totalAed,
+        submittedAt:          Date.now(),
+        status:               "Submitted",
+        assignedFinanceId:    finance.id,
+        assignedFinanceName:  finance.name,
+        assignedFinanceEmail: finance.email,
+      });
+
+      // 2. Push a notification for the assigned Finance person
+      pushLocalNotif({
+        forEmail:  finance.email,
+        title:     `New claim from ${user.name}`,
+        body:      `${ref} · AED ${totals.totalAed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} — assigned to you for review.`,
+        claimRef:  ref,
+        read:      false,
       });
 
       setReference(ref);

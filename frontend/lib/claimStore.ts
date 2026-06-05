@@ -1,43 +1,58 @@
-/**
- * Client-side claim store — persists submitted claims in localStorage so the
- * Finance dashboard can read them in real-time (same tab via polling, cross-tab
- * via the native `storage` event).
- *
- * PRODUCTION: replace with a server-sent event (SSE) or WebSocket stream from
- * the backend so Finance sees updates pushed from the database in real-time:
- *   const es = new EventSource("/api/finance/stream");
- *   es.onmessage = (e) => setQueue(prev => [JSON.parse(e.data), ...prev]);
- */
-
-export const CLAIM_STORE_KEY = "wps_submitted_claims";
-
-export type LiveClaim = {
-  id: string;
-  reference: string;
-  employee: string;
-  department: string;
-  email: string;
-  amountAed: number;
-  submittedAt: number; // Unix ms — used for sorting + "NEW" badge
-  status: "Submitted" | "Approved" | "Rejected" | "Paid";
-};
-
-/** Separate key for Finance status overrides (approve / reject / paid). */
-export const STATUS_STORE_KEY = "wps_claim_statuses";
+export const CLAIM_STORE_KEY    = "wps_submitted_claims";
+export const STATUS_STORE_KEY   = "wps_claim_statuses";
+export const NOTIF_STORE_KEY    = "wps_notifications";
 
 export type ClaimStatus = "Submitted" | "Review" | "Approved" | "Rejected" | "Paid";
 
-export type StatusRecord = {
-  status: ClaimStatus;
-  reason?: string;      // for rejections
-  updatedAt: number;    // Unix ms
+export type LiveClaim = {
+  id:                 string;
+  reference:          string;
+  employee:           string;
+  department:         string;
+  email:              string;
+  amountAed:          number;
+  submittedAt:        number;
+  status:             "Submitted" | "Approved" | "Rejected" | "Paid";
+  assignedFinanceId:  string;   // ← finance person the employee chose
+  assignedFinanceName: string;  // ← their display name
+  assignedFinanceEmail: string; // ← their email (used for notifications)
 };
 
-export function updateClaimStatus(
-  reference: string,
-  status: ClaimStatus,
-  reason?: string
-): void {
+export type StatusRecord = {
+  status:    ClaimStatus;
+  reason?:   string;
+  updatedAt: number;
+};
+
+export type LocalNotif = {
+  id:         string;
+  forEmail:   string;   // which user this notification is for
+  title:      string;
+  body:       string;
+  claimRef:   string;
+  read:       boolean;
+  createdAt:  number;
+};
+
+// ─── Claims ───────────────────────────────────────────────────────────────────
+
+export function saveLiveClaim(claim: LiveClaim): void {
+  if (typeof window === "undefined") return;
+  const deduped = readLiveClaims().filter((c) => c.reference !== claim.reference);
+  window.localStorage.setItem(CLAIM_STORE_KEY, JSON.stringify([claim, ...deduped]));
+}
+
+export function readLiveClaims(): LiveClaim[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CLAIM_STORE_KEY);
+    return raw ? (JSON.parse(raw) as LiveClaim[]) : [];
+  } catch { return []; }
+}
+
+// ─── Status overrides (Finance actions) ──────────────────────────────────────
+
+export function updateClaimStatus(reference: string, status: ClaimStatus, reason?: string): void {
   if (typeof window === "undefined") return;
   const raw = window.localStorage.getItem(STATUS_STORE_KEY);
   const map: Record<string, StatusRecord> = raw ? JSON.parse(raw) : {};
@@ -50,28 +65,41 @@ export function readStatusMap(): Record<string, StatusRecord> {
   try {
     const raw = window.localStorage.getItem(STATUS_STORE_KEY);
     return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
-export function saveLiveClaim(claim: LiveClaim): void {
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export function pushLocalNotif(notif: Omit<LocalNotif, "id" | "createdAt">): void {
   if (typeof window === "undefined") return;
-  const existing = readLiveClaims();
-  // Avoid duplicates by reference
-  const deduped = existing.filter((c) => c.reference !== claim.reference);
-  window.localStorage.setItem(
-    CLAIM_STORE_KEY,
-    JSON.stringify([claim, ...deduped])
-  );
+  const existing = readLocalNotifs();
+  const newNotif: LocalNotif = {
+    ...notif, id: `n_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    createdAt: Date.now(),
+  };
+  window.localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify([newNotif, ...existing]));
 }
 
-export function readLiveClaims(): LiveClaim[] {
+export function readLocalNotifs(): LocalNotif[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(CLAIM_STORE_KEY);
-    return raw ? (JSON.parse(raw) as LiveClaim[]) : [];
-  } catch {
-    return [];
-  }
+    const raw = window.localStorage.getItem(NOTIF_STORE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function markNotifRead(id: string): void {
+  if (typeof window === "undefined") return;
+  const notifs = readLocalNotifs().map((n) => n.id === id ? { ...n, read: true } : n);
+  window.localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify(notifs));
+}
+
+export function markAllNotifsRead(email: string): void {
+  if (typeof window === "undefined") return;
+  const notifs = readLocalNotifs().map((n) => n.forEmail === email ? { ...n, read: true } : n);
+  window.localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify(notifs));
+}
+
+export function getUnreadCount(email: string): number {
+  return readLocalNotifs().filter((n) => n.forEmail === email && !n.read).length;
 }

@@ -9,6 +9,7 @@ import {
   readLiveClaims, readStatusMap, updateClaimStatus,
   type LiveClaim, type ClaimStatus,
 } from "@/lib/claimStore";
+import { readLocalNotifs } from "@/lib/claimStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ type QueueItem = {
   id: string; reference: string; employee: string; department: string;
   amountAed: number; submitted: string; status: ClaimStatus;
   submittedAt: number; isLive?: boolean; rejectReason?: string;
+  assignedToMe?: boolean;
 };
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
@@ -175,12 +177,15 @@ export default function FinancePage() {
   const notifTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function buildQueue(): QueueItem[] {
-    const sm = readStatusMap();
+    const sm   = readStatusMap();
+    const me   = getCurrentUser();
     const live = readLiveClaims().map((c: LiveClaim): QueueItem => ({
       id: c.id, reference: c.reference, employee: c.employee, department: c.department,
       amountAed: c.amountAed, submitted: timeAgo(c.submittedAt),
       status: (sm[c.reference]?.status ?? c.status) as ClaimStatus,
       rejectReason: sm[c.reference]?.reason, submittedAt: c.submittedAt, isLive: true,
+      // Mark if this claim was assigned to the current Finance user
+      assignedToMe: c.assignedFinanceEmail === me.email,
     }));
     const liveRefs = new Set(live.map((c) => c.reference));
     const seeds = SEED.filter((s) => !liveRefs.has(s.reference)).map((s): QueueItem => ({
@@ -378,9 +383,10 @@ export default function FinancePage() {
                 <div className="hidden items-center gap-4 px-5 py-4 sm:grid"
                   style={{ gridTemplateColumns: "200px 1fr 140px 120px 240px" }}>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{c.employee}</span>
                       {_new && <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase text-white" style={{ background: "#CC0000" }}>NEW</span>}
+                      {c.assignedToMe && <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase text-blue-700">Assigned to you</span>}
                     </div>
                     <span className="text-xs text-gray-400">{c.department}</span>
                   </div>
