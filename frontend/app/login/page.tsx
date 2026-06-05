@@ -38,9 +38,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-[52%] flex-col justify-between border-r border-gray-100 bg-white px-12 py-10">
 
         <div className="flex flex-col gap-1.5">
-          <svg viewBox="0 0 33.3 36.4" width="32" height="34" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#CC0000" d="M33.3,14.3H0V0h13.9v5.6h5.6V0h13.9V14.3L33.3,14.3z M19.4,30.9v5.6c8-1.5,13.9-8.4,13.9-16.2v-0.3H0v0.3C0,28,5.9,34.9,13.9,36.4v-5.6H19.4L19.4,30.9z"/>
-          </svg>
+          <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 28, width: "auto", maxWidth: 160 }} />
           <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
             Professional Solutions
           </p>
@@ -95,16 +93,11 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <svg viewBox="0 0 33.3 36.4" width="28" height="30" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#CC0000" d="M33.3,14.3H0V0h13.9v5.6h5.6V0h13.9V14.3L33.3,14.3z M19.4,30.9v5.6c8-1.5,13.9-8.4,13.9-16.2v-0.3H0v0.3C0,28,5.9,34.9,13.9,36.4v-5.6H19.4L19.4,30.9z"/>
-            </svg>
-            <div className="leading-none">
-              <p className="text-[15px] font-black uppercase tracking-tight text-gray-900">WÜRTH</p>
-              <p className="text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5" style={{ color: "#CC0000" }}>
-                Professional Solutions
-              </p>
-            </div>
+          <div className="mb-8 flex flex-col gap-1.5 lg:hidden">
+            <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 24, width: "auto", maxWidth: 140 }} />
+            <p className="text-[8px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
+              Professional Solutions
+            </p>
           </div>
 
           {/* Login card */}

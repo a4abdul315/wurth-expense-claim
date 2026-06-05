@@ -33,16 +33,16 @@ const FINANCE_NAV = [
 
 function WurthMark() {
   return (
-    <div className="flex items-center gap-2.5 select-none">
-      <svg viewBox="0 0 33.3 36.4" width="26" height="28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path fill="#CC0000" d="M33.3,14.3H0V0h13.9v5.6h5.6V0h13.9V14.3L33.3,14.3z M19.4,30.9v5.6c8-1.5,13.9-8.4,13.9-16.2v-0.3H0v0.3C0,28,5.9,34.9,13.9,36.4v-5.6H19.4L19.4,30.9z"/>
-      </svg>
-      <div className="leading-none">
-        <p className="text-[15px] font-black uppercase tracking-tight text-gray-900">WÜRTH</p>
-        <p className="text-[8px] font-bold uppercase tracking-[0.2em] mt-0.5" style={{ color: "#CC0000" }}>
-          Professional Solutions
-        </p>
-      </div>
+    <div className="flex flex-col gap-1 select-none">
+      {/* Full Würth logo — shield + WÜRTH wordmark in one SVG */}
+      <img
+        src="/wurth-logo.svg"
+        alt="WÜRTH"
+        style={{ height: 22, width: "auto", maxWidth: 140 }}
+      />
+      <p className="text-[8px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
+        Professional Solutions
+      </p>
     </div>
   );
 }
