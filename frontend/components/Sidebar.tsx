@@ -117,7 +117,7 @@ export function Sidebar() {
             <p className="truncate text-sm font-semibold text-gray-900">{user.name}</p>
             <p className="truncate text-xs text-slate-500">
               {user.department}
-              {isFinance && <span className="ml-1" style={{ color: avatarBg }}>· {user.role === "FINANCE_SUPER" ? "Super User" : "Finance"}</span>}
+              {isFinance && <span className="ml-1" style={{ color: avatarBg }}>· {user.role === "FINANCE_SUPER" ? "Super User" : "Reviewer"}</span>}
             </p>
           </div>
         </div>

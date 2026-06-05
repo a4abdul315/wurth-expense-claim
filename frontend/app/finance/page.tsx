@@ -443,94 +443,110 @@ export default function FinancePage() {
       </div>
 
       {/* ── Desktop table ── */}
-      <div className="mt-4 hidden overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm sm:block">
+      <div className="mt-4 hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:block">
 
-        {/* Desktop header — 7 columns */}
-        <div className="border-b border-gray-100 bg-gray-50 px-5 py-3 grid"
-          style={{ gridTemplateColumns: "180px 150px 130px 100px 120px 160px 120px", minWidth: 980 }}>
-          {["Employee","Reference","Amount (AED)","Submitted","Status","Actions","Discussion"].map((h) => (
-            <span key={h} className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</span>
-          ))}
-        </div>
-
-        <div className="divide-y divide-gray-50" style={{ minWidth: 980 }}>
-          {filtered.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-gray-400">No claims match this filter.</p>
-          ) : filtered.map((c) => {
-            const _new = isNew(c.submittedAt);
-            return (
-              <div key={c.id} className={`transition-colors ${_new ? "bg-red-50/40" : "hover:bg-gray-50/40"}`}
-                style={_new ? { animation: "slideDown .35s ease" } : {}}>
-
-                {/* ── Desktop row ── */}
-                <div className="hidden items-center gap-3 px-5 py-3.5 sm:grid"
-                  style={{ gridTemplateColumns: "180px 150px 130px 100px 120px 160px 120px" }}>
-
-                  {/* Employee */}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1">
-                      <span className="text-sm font-semibold text-gray-900 truncate">{c.employee}</span>
-                      {_new && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white" style={{ background: "#CC0000" }}>NEW</span>}
-                    </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-xs text-gray-400">{c.department}</span>
-                      {c.assignedToMe && <span className="rounded px-1.5 py-0.5 text-[9px] font-bold border border-blue-200 bg-blue-50 text-blue-600">Mine</span>}
-                    </div>
-                  </div>
-
-                  {/* Reference */}
-                  <span className="text-sm text-gray-500 font-mono">{c.reference}</span>
-
-                  {/* Amount */}
-                  <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtAed(c.amountAed)}</span>
-
-                  {/* Submitted */}
-                  <span className="text-xs text-gray-400">{c.submitted}</span>
-
-                  {/* Status badge */}
-                  <div><StatusBadge status={c.status} /></div>
-
-                  {/* Action buttons (Approve / Reject / Mark Paid) */}
-                  <div className="flex items-center gap-1.5">
-                    {(c.status === "Submitted" || c.status === "Review") && (
-                      <>
-                        <button onClick={() => setRejectTarget(c)}
-                          className="h-8 rounded-lg border border-red-200 px-2.5 text-xs font-semibold text-red-600 hover:bg-red-50">
-                          Reject
-                        </button>
-                        <button onClick={() => handleApprove(c)}
-                          className="h-8 rounded-lg px-2.5 text-xs font-bold text-white" style={{ background: "#16a34a" }}>
-                          Approve
-                        </button>
-                      </>
-                    )}
-                    {c.status === "Approved" && (
-                      <button onClick={() => handlePaid(c)}
-                        className="h-8 rounded-lg bg-blue-600 px-2.5 text-xs font-bold text-white hover:bg-blue-700">
-                        Mark Paid
-                      </button>
-                    )}
-                    {c.status === "Paid" && (
-                      <span className="text-xs text-gray-400">Completed</span>
-                    )}
-                    {c.status === "Rejected" && (
-                      <span className="text-xs text-red-400">Rejected</span>
-                    )}
-                  </div>
-
-                  {/* Discussion button — separate column so it's always visible */}
-                  <button onClick={() => setViewClaim(c)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Discuss
-                  </button>
-                </div>
+        {/* Column template — uses fr units so it fills any screen width */}
+        {(() => {
+          const cols = "2fr 1.6fr 1.4fr 1fr 1.2fr 1.6fr 1.2fr";
+          return (
+            <>
+              {/* Header */}
+              <div className="grid border-b border-gray-100 bg-gray-50 px-6 py-3"
+                style={{ gridTemplateColumns: cols }}>
+                {["Employee","Reference","Amount (AED)","Submitted","Status","Actions","Discussion"].map((h, i) => (
+                  <span key={h}
+                    className={`text-[11px] font-bold uppercase tracking-wider text-gray-400 ${i === 2 ? "text-right" : ""}`}>
+                    {h}
+                  </span>
+                ))}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Rows */}
+              <div className="divide-y divide-gray-50">
+                {filtered.length === 0 ? (
+                  <p className="px-6 py-10 text-center text-sm text-gray-400">No claims match this filter.</p>
+                ) : filtered.map((c) => {
+                  const _new = isNew(c.submittedAt);
+                  return (
+                    <div key={c.id}
+                      className={`grid items-center px-6 py-4 transition-colors ${_new ? "bg-red-50/30" : "hover:bg-gray-50/60"}`}
+                      style={{ gridTemplateColumns: cols, animation: _new ? "slideDown .3s ease" : undefined }}>
+
+                      {/* Employee */}
+                      <div className="min-w-0 pr-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-900 truncate">{c.employee}</span>
+                          {_new && (
+                            <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white"
+                              style={{ background: "#CC0000" }}>NEW</span>
+                          )}
+                          {c.assignedToMe && (
+                            <span className="shrink-0 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-600">
+                              Mine
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400">{c.department}</span>
+                      </div>
+
+                      {/* Reference */}
+                      <span className="text-sm text-gray-500 truncate pr-2">{c.reference}</span>
+
+                      {/* Amount — right aligned */}
+                      <span className="text-sm font-bold text-gray-900 tabular-nums text-right pr-2">
+                        {fmtAed(c.amountAed)}
+                      </span>
+
+                      {/* Submitted */}
+                      <span className="text-xs text-gray-400">{c.submitted}</span>
+
+                      {/* Status */}
+                      <div><StatusBadge status={c.status} /></div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1.5">
+                        {(c.status === "Submitted" || c.status === "Review") && (
+                          <>
+                            <button onClick={() => setRejectTarget(c)}
+                              className="h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 whitespace-nowrap">
+                              Reject
+                            </button>
+                            <button onClick={() => handleApprove(c)}
+                              className="h-8 rounded-lg px-3 text-xs font-bold text-white whitespace-nowrap"
+                              style={{ background: "#16a34a" }}>
+                              Approve
+                            </button>
+                          </>
+                        )}
+                        {c.status === "Approved" && (
+                          <button onClick={() => handlePaid(c)}
+                            className="h-8 rounded-lg bg-blue-600 px-3 text-xs font-bold text-white hover:bg-blue-700 whitespace-nowrap">
+                            Mark Paid
+                          </button>
+                        )}
+                        {c.status === "Paid" && (
+                          <span className="text-xs text-gray-400">Completed</span>
+                        )}
+                        {c.status === "Rejected" && (
+                          <span className="text-xs text-red-500">Rejected</span>
+                        )}
+                      </div>
+
+                      {/* Discussion */}
+                      <button onClick={() => setViewClaim(c)}
+                        className="flex h-8 items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Discuss
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       <p className="mt-3 text-xs text-gray-400">
