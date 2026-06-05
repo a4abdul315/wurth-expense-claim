@@ -42,15 +42,11 @@ export default function LoginPage() {
       {/* ── Left brand panel — desktop only ── */}
       <section className="hidden flex-col justify-between border-r border-line bg-white px-10 py-12 lg:flex lg:w-[55%]">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded text-lg font-extrabold text-white"
-            style={{ background: "#CC0000" }}>W</span>
-          <div className="leading-none">
-            <span className="block text-lg font-extrabold uppercase tracking-tight text-ink">WÜRTH</span>
-            <span className="block mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700">
-              Professional Solutions
-            </span>
-          </div>
+        <div className="flex flex-col gap-1">
+          <img src="/wurth-logo.svg" alt="Würth" className="h-8 w-auto" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700">
+            Professional Solutions
+          </span>
         </div>
 
         {/* Headline */}
@@ -94,15 +90,11 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="grid h-11 w-11 place-items-center rounded text-base font-extrabold text-white"
-              style={{ background: "#CC0000" }}>W</span>
-            <div className="leading-none">
-              <span className="block text-base font-extrabold uppercase tracking-tight text-ink">WÜRTH</span>
-              <span className="block mt-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-700">
-                Professional Solutions
-              </span>
-            </div>
+          <div className="mb-8 flex flex-col gap-1 lg:hidden">
+            <img src="/wurth-logo.svg" alt="Würth" className="h-7 w-auto" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-700">
+              Professional Solutions
+            </span>
           </div>
 
           {/* Card */}

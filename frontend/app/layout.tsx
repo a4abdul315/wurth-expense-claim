@@ -1,18 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow } from "next/font/google";
 import "./globals.css";
 
 /**
- * Barlow is the closest publicly available font to the Würth corporate typeface.
- * PRODUCTION: Replace with the actual licensed "Würth Sans" font files by adding
- * them to /public/fonts/ and updating the CSS @font-face declaration in globals.css.
+ * Font: Official Würth typeface loaded from /public/fonts/ via @font-face in globals.css.
+ * Files: WuerthBook.ttf (400), WuerthDemiBold.ttf (600), WuerthBold.ttf (700), WuerthGlobal-Bold (800)
+ * No next/font/google needed — fonts are self-hosted.
  */
-const barlow = Barlow({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-barlow",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Würth Professional Solutions – Expense Claims",
@@ -31,8 +24,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={barlow.variable}>
-      <body className="min-h-screen bg-paper antialiased font-barlow">{children}</body>
+    <html lang="en">
+      <body
+        className="min-h-screen bg-paper antialiased"
+        style={{ fontFamily: "Wuerth, system-ui, sans-serif" }}
+      >
+        {children}
+      </body>
     </html>
   );
 }

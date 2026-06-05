@@ -55,22 +55,17 @@ const financeNav = [
 function WurthLogo({ collapsed }: { collapsed?: boolean }) {
   return (
     <div className="flex items-center gap-3 select-none">
-      {/* Red square brand mark */}
-      <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded"
-        style={{ background: "#CC0000" }}
-      >
-        <span className="font-black text-white text-base tracking-tighter">W</span>
-      </div>
+      {/* Official Würth SVG logo */}
+      <img
+        src="/wurth-logo.svg"
+        alt="Würth Professional Solutions"
+        className={collapsed ? "h-7 w-auto" : "h-7 w-auto"}
+        style={{ minWidth: collapsed ? 28 : 120 }}
+      />
       {!collapsed && (
-        <div className="leading-none min-w-0">
-          <p className="text-[15px] font-black uppercase tracking-tight text-ink leading-none">
-            WÜRTH
-          </p>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-700 mt-0.5 leading-none">
-            Professional Solutions
-          </p>
-        </div>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-700 leading-none whitespace-nowrap">
+          Professional Solutions
+        </p>
       )}
     </div>
   );

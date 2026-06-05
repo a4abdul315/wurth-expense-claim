@@ -9,7 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        barlow: ["var(--font-barlow)", "system-ui", "sans-serif"],
+        // Official Würth typeface loaded from /public/fonts/
+        wuerth: ["Wuerth", "system-ui", "sans-serif"],
+        barlow: ["var(--font-barlow)", "system-ui", "sans-serif"], // fallback
       },
       colors: {
         ink: "#17202a",

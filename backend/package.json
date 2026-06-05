@@ -1,31 +1,29 @@
 {
   "name": "wps-expense-backend",
   "version": "1.0.0",
-  "description": "Würth Professional Solutions – Expense Claim API (Express + PostgreSQL)",
+  "description": "Würth Professional Solutions – Expense Claim API (Express + MySQL)",
   "main": "dist/server.js",
   "scripts": {
-    "dev":   "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "seed":  "tsx src/seed.ts",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "dev":      "tsx watch src/server.ts",
+    "build":    "tsc",
+    "start":    "node dist/server.js",
+    "db:setup": "tsx src/db/setup.ts",
+    "db:seed":  "tsx src/db/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "cors":           "^2.8.5",
-    "dotenv":         "^16.4.7",
-    "express":        "^4.21.2",
-    "morgan":         "^1.10.0",
-    "pdf-lib":        "^1.17.1",
-    "zod":            "^3.24.0"
+    "cors":    "^2.8.5",
+    "dotenv":  "^16.4.7",
+    "express": "^4.21.2",
+    "morgan":  "^1.10.0",
+    "mysql2":  "^3.11.3",
+    "pdf-lib": "^1.17.1",
+    "zod":     "^3.24.0"
   },
   "devDependencies": {
     "@types/cors":    "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/morgan":  "^1.9.9",
     "@types/node":    "^22.10.0",
-    "prisma":         "^5.22.0",
     "tsx":            "^4.19.2",
     "typescript":     "^5.7.0"
   }
