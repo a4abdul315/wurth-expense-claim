@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ClaimList } from "@/components/ClaimList";
 import { readLiveClaims, readStatusMap } from "@/lib/claimStore";
-import { MOCK_USER } from "@/lib/mockUser";
+import { getCurrentUser } from "@/lib/mockUser";
 
 const fmtAed = (n: number) =>
   `AED ${n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -22,7 +22,7 @@ function useStats() {
   function calc() {
     const statusMap = readStatusMap();
     const mine = readLiveClaims()
-      .filter((c) => c.email === MOCK_USER.email)
+      .filter((c) => c.email === getCurrentUser().email)
       .map((c) => ({
         ...c,
         currentStatus: statusMap[c.reference]?.status ?? c.status,
@@ -55,7 +55,8 @@ function useStats() {
 }
 
 export default function DashboardPage() {
-  const stats = useStats();
+  const stats   = useStats();
+  const isFinance = ["FINANCE","FINANCE_SUPER","ADMIN"].includes(getCurrentUser().role);
   const [clearing, setClearing] = useState(false);
 
   function clearTestData() {
@@ -101,13 +102,23 @@ export default function DashboardPage() {
             Your submitted expense claims and their status.
           </p>
         </div>
-        <Link
-          href="/claims/new"
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg px-4 text-sm font-bold text-white transition active:opacity-80"
-          style={{ background: "#CC0000" }}
-        >
-          + New claim
-        </Link>
+        {!isFinance && (
+          <Link
+            href="/claims/new"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg px-4 text-sm font-bold text-white transition active:opacity-80"
+            style={{ background: "#CC0000" }}
+          >
+            + New claim
+          </Link>
+        )}
+        {isFinance && (
+          <Link
+            href="/finance"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg px-4 text-sm font-bold text-white transition active:opacity-80 bg-purple-600"
+          >
+            Finance queue →
+          </Link>
+        )}
       </div>
 
       <div className="mt-3">

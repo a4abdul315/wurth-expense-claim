@@ -4,6 +4,8 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ClaimLineItemsForm, type ExpenseCategory } from "@/components/ClaimLineItemsForm";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
 import { saveLiveClaim, pushLocalNotif } from "@/lib/claimStore";
 
@@ -79,6 +81,17 @@ function ReadField({ label, value }: { label: string; value: string }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function NewClaimPage() {
+  const router = useRouter();
+
+  // Finance users cannot submit claims — redirect them to their dashboard
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN") {
+      router.replace("/finance");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [totals, setTotals] = useState({ totalAed: 0, totalEur: 0 });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_categories, setCategories] = useState<ExpenseCategory[]>([]);

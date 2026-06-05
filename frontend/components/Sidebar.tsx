@@ -116,10 +116,11 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-          Expense Claims
+          {isFinance ? "Finance" : "Expense Claims"}
         </p>
 
-        {employeeNav.map((item) => (
+        {/* Employee-only nav items — hidden for Finance */}
+        {!isFinance && employeeNav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -141,11 +142,6 @@ export function Sidebar() {
 
         {isFinance && (
           <>
-            <div className="pt-3 pb-1">
-              <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                Finance
-              </p>
-            </div>
             {financeNav.map((item) => (
               <Link
                 key={item.href}
@@ -199,10 +195,8 @@ export function MobileNav() {
   useEffect(() => { setUser(getCurrentUser()); }, [pathname]);
   const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
 
-  const tabs = [
-    ...employeeNav,
-    ...(isFinance ? financeNav : []),
-  ];
+  // Finance users only see Finance nav; employees see employee nav
+  const tabs = isFinance ? financeNav : [...employeeNav];
 
   return (
     <nav
