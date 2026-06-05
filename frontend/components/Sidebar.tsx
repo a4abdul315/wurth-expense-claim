@@ -38,7 +38,7 @@ function WurthMark() {
       <img
         src="/wurth-logo.svg"
         alt="WÜRTH"
-        style={{ height: 22, width: "auto", maxWidth: 140 }}
+        style={{ maxWidth: 130 }}
       />
       <p className="text-[8px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
         Professional Solutions

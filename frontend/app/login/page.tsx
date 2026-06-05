@@ -39,7 +39,7 @@ export default function LoginPage() {
 
         {/* Logo — top aligned */}
         <div className="flex flex-col gap-1.5 mb-12">
-          <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 32, width: "auto", maxWidth: 180 }} />
+          <img src="/wurth-logo.svg" alt="WÜRTH" style={{ maxWidth: 200 }} />
           <p className="text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: "#CC0000" }}>
             Professional Solutions
           </p>
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="mb-8 flex flex-col gap-1.5 lg:hidden">
-            <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 24, width: "auto", maxWidth: 140 }} />
+            <img src="/wurth-logo.svg" alt="WÜRTH" style={{ maxWidth: 150 }} />
             <p className="text-[8px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
               Professional Solutions
             </p>
