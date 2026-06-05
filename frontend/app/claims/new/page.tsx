@@ -49,7 +49,7 @@ function SuccessCard({ reference, totalAed }: { reference: string; totalAed: num
           </span>
         </p>
         <p className="mt-1 text-xs text-slate-400">
-          Confirmation sent to {getCurrentUser().email}
+          Confirmation sent to Finance
         </p>
       </div>
 
@@ -93,6 +93,10 @@ export default function NewClaimPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Null on server → avoids hydration mismatch from localStorage
+  const [pageUser, setPageUser] = useState<ReturnType<typeof getCurrentUser> | null>(null);
+  useEffect(() => { setPageUser(getCurrentUser()); }, []);
 
   const [totals, setTotals] = useState({ totalAed: 0, totalEur: 0 });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -223,12 +227,12 @@ export default function NewClaimPage() {
             <div>
               <p className="text-xs text-slate-500">Employee</p>
               <p className="mt-0.5 text-sm font-medium text-ink">
-                {getCurrentUser().lastName}, {getCurrentUser().firstName}
+                {pageUser ? `${pageUser.lastName}, ${pageUser.firstName}` : "..."}
               </p>
             </div>
             <div>
               <p className="text-xs text-slate-500">Account No.</p>
-              <p className="mt-0.5 text-sm font-medium text-ink">{getCurrentUser().accountNo}</p>
+              <p className="mt-0.5 text-sm font-medium text-ink">{pageUser?.accountNo ?? "..."}</p>
             </div>
           </div>
         </div>
@@ -240,9 +244,9 @@ export default function NewClaimPage() {
             Pre-filled from your corporate account.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <ReadField label="Full name"  value={getCurrentUser().name} />
-            <ReadField label="Department" value={getCurrentUser().department} />
-            <ReadField label="Email"      value={getCurrentUser().email} />
+            <ReadField label="Full name"  value={pageUser?.name ?? ""} />
+            <ReadField label="Department" value={pageUser?.department ?? ""} />
+            <ReadField label="Email"      value={pageUser?.email ?? ""} />
           </div>
         </div>
 

@@ -243,7 +243,8 @@ function ClaimDetailPanel({ claim, onClose, onApprove, onReject, onPaid }: {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
-  const [user, setUser] = useState<AppUser>(getCurrentUser());
+  // null on server → no SSR mismatch. Set after mount from localStorage.
+  const [user, setUser] = useState<AppUser | null>(null);
   useEffect(() => { setUser(getCurrentUser()); }, []);
   const [queue,        setQueue]        = useState<QueueItem[]>([]);
   const [filter,       setFilter]       = useState("All");
@@ -367,16 +368,18 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Reviewer info banner */}
-      <div className="mb-5 flex items-center gap-3 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-600 text-xs font-bold text-white">
-          {user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+      {/* Reviewer info banner — only after mount so initials match logged-in user */}
+      {user && (
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-600 text-xs font-bold text-white">
+            {user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+          </div>
+          <div>
+            <p className="text-sm font-bold text-purple-900">{user.name}</p>
+            <p className="text-xs text-purple-600">{user.role === "FINANCE_SUPER" ? "Finance Super User — full visibility" : "Finance Reviewer"}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-bold text-purple-900">{user.name}</p>
-          <p className="text-xs text-purple-600">{user.role === "FINANCE_SUPER" ? "Finance Super User — full visibility" : "Finance Reviewer"}</p>
-        </div>
-      </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">

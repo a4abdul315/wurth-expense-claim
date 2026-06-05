@@ -55,9 +55,14 @@ function useStats() {
 }
 
 export default function DashboardPage() {
-  const stats   = useStats();
-  const isFinance = ["FINANCE","FINANCE_SUPER","ADMIN"].includes(getCurrentUser().role);
-  const [clearing, setClearing] = useState(false);
+  const stats = useStats();
+  const [isFinance, setIsFinance] = useState(false); // false on server — no mismatch
+  const [clearing,  setClearing]  = useState(false);
+
+  useEffect(() => {
+    setIsFinance(["FINANCE","FINANCE_SUPER","ADMIN"].includes(getCurrentUser().role));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function clearTestData() {
     setClearing(true);
