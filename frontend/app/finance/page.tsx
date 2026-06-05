@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ThreadPanel } from "@/components/ThreadPanel";
-import { getCurrentUser } from "@/lib/mockUser";
+import { getCurrentUser, type AppUser } from "@/lib/mockUser";
 import {
   readLiveClaims, readStatusMap, updateClaimStatus,
   type LiveClaim, type ClaimStatus,
@@ -163,7 +163,8 @@ function ClaimDetailPanel({ claim, onClose, onApprove, onReject, onPaid }: {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
-  const user = getCurrentUser();
+  const [user, setUser] = useState<AppUser>(getCurrentUser());
+  useEffect(() => { setUser(getCurrentUser()); }, []);
   const [queue,        setQueue]        = useState<QueueItem[]>([]);
   const [filter,       setFilter]       = useState("All");
   const [notification, setNotification] = useState<{ msg: string; color: string } | null>(null);

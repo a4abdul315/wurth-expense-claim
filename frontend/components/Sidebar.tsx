@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { getCurrentUser } from "@/lib/mockUser";
+import { getCurrentUser, type AppUser } from "@/lib/mockUser";
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
@@ -91,7 +92,11 @@ function WurthLogo() {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const user     = getCurrentUser();
+
+  // Read from localStorage on client — avoids SSR mismatch and updates on login
+  const [user, setUser] = useState<AppUser>(getCurrentUser());
+  useEffect(() => { setUser(getCurrentUser()); }, [pathname]); // re-check on every route change
+
   const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
 
   function isActive(href: string) {
@@ -190,7 +195,8 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname  = usePathname();
-  const user      = getCurrentUser();
+  const [user, setUser] = useState<AppUser>(getCurrentUser());
+  useEffect(() => { setUser(getCurrentUser()); }, [pathname]);
   const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
 
   const tabs = [

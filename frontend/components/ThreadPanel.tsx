@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FINANCE_TEAM, MOCK_USER } from "@/lib/mockUser";
+import { FINANCE_TEAM, getCurrentUser } from "@/lib/mockUser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ interface Thread {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const AUTH = `Bearer mock:${MOCK_USER.email}`;
+
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -67,13 +67,15 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
   const [error,        setError]        = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const isFinance = MOCK_USER.role === "FINANCE" || MOCK_USER.role === "FINANCE_SUPER";
+  const currentUser = getCurrentUser();
+  const auth        = `Bearer mock:${currentUser.email}`;
+  const isFinance   = currentUser.role === "FINANCE" || currentUser.role === "FINANCE_SUPER";
 
   // ── Load thread ──
   async function loadThread() {
     try {
       const res = await fetch(`${API}/threads/claim/${claimId}`, {
-        headers: { Authorization: AUTH },
+        headers: { Authorization: auth },
       });
       if (res.ok) {
         const body = await res.json();
@@ -109,7 +111,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
     try {
       const res = await fetch(`${API}/threads/claim/${claimId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: AUTH },
+        headers: { "Content-Type": "application/json", Authorization: auth },
         body: JSON.stringify({ content: message.trim() }),
       });
       if (res.ok) {
@@ -134,7 +136,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
     try {
       const res = await fetch(`${API}/threads/claim/${claimId}/invite`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: AUTH },
+        headers: { "Content-Type": "application/json", Authorization: auth },
         body: JSON.stringify({ inviteeId: inviteTarget }),
       });
       const body = await res.json();
@@ -203,7 +205,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
           <p className="text-center text-xs text-slate-400 py-4">No messages yet. Start the discussion.</p>
         ) : (
           thread.messages.map((msg) => {
-            const isMe = msg.authorId === MOCK_USER.email || msg.authorName === MOCK_USER.name;
+            const isMe = msg.authorId === currentUser.email || msg.authorName === currentUser.name;
             return (
               <div key={msg.id} className={`flex gap-2.5 ${isMe ? "flex-row-reverse" : ""}`}>
                 {/* Avatar */}
@@ -317,7 +319,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
             </svg>
           </button>
         </div>
-        {MOCK_USER.role === "EMPLOYEE" && (
+        {currentUser.role === "EMPLOYEE" && (
           <p className="mt-1 text-[10px] text-slate-400">
             You can message the Finance reviewer. Only Finance members can invite others.
           </p>

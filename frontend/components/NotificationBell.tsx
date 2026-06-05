@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MOCK_USER } from "@/lib/mockUser";
+import { getCurrentUser } from "@/lib/mockUser";
 
-const API  = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const AUTH = `Bearer mock:${MOCK_USER.email}`;
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 interface Notif {
   id:        string;
@@ -39,9 +38,12 @@ export function NotificationBell() {
   const [open,    setOpen]    = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Auth header built from the current session — updates when user changes
+  const auth = `Bearer mock:${getCurrentUser().email}`;
+
   async function fetchNotifs() {
     try {
-      const res = await fetch(`${API}/notifications`, { headers: { Authorization: AUTH } });
+      const res = await fetch(`${API}/notifications`, { headers: { Authorization: auth } });
       if (!res.ok) return;
       const body = await res.json();
       const newUnread: number = body.meta?.unread ?? 0;
@@ -87,13 +89,13 @@ export function NotificationBell() {
   }, []);
 
   async function handleMarkAll() {
-    await fetch(`${API}/notifications/read-all`, { method: "POST", headers: { Authorization: AUTH } });
+    await fetch(`${API}/notifications/read-all`, { method: "POST", headers: { Authorization: auth } });
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnread(0);
   }
 
   async function handleMarkOne(id: string) {
-    await fetch(`${API}/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: AUTH } });
+    await fetch(`${API}/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: auth } });
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
     setUnread((prev) => Math.max(0, prev - 1));
   }
