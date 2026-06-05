@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PreparedReceipt = {
   id: string;
@@ -26,14 +26,23 @@ const maxFileSizeBytes = 10 * 1024 * 1024;
 const maxImageDimension = 1800;
 const jpegQuality = 0.78;
 
-export function ReceiptUpload() {
+export interface ReceiptMeta { name: string; size: number; type: string; previewUrl: string | null; }
+
+export function ReceiptUpload({ onChange }: { onChange?: (receipts: ReceiptMeta[]) => void } = {}) {
   const [files, setFiles] = useState<PreparedReceipt[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Notify parent whenever files change
+  useEffect(() => {
+    onChange?.(files.filter(f => f.status === "ready").map(f => ({
+      name: f.name, size: f.size, type: f.mimeType, previewUrl: f.previewUrl,
+    })));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
+
   async function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-
     setIsProcessing(true);
     const prepared = await Promise.all(Array.from(fileList).map(prepareReceipt));
     setFiles((current) => [...current, ...prepared]);

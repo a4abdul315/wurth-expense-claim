@@ -4,18 +4,22 @@ export const NOTIF_STORE_KEY    = "wps_notifications";
 
 export type ClaimStatus = "Submitted" | "Review" | "Approved" | "Rejected" | "Paid";
 
+export type ReceiptMeta = { name: string; size: number; type: string; previewUrl: string | null; };
+
 export type LiveClaim = {
-  id:                 string;
-  reference:          string;
-  employee:           string;
-  department:         string;
-  email:              string;
-  amountAed:          number;
-  submittedAt:        number;
-  status:             "Submitted" | "Approved" | "Rejected" | "Paid";
-  assignedFinanceId:  string;   // ← finance person the employee chose
-  assignedFinanceName: string;  // ← their display name
-  assignedFinanceEmail: string; // ← their email (used for notifications)
+  id:                   string;
+  reference:            string;
+  employee:             string;
+  department:           string;
+  email:                string;
+  amountAed:            number;
+  submittedAt:          number;
+  status:               "Submitted" | "Approved" | "Rejected" | "Paid";
+  assignedFinanceId:    string;
+  assignedFinanceName:  string;
+  assignedFinanceEmail: string;
+  receipts:             ReceiptMeta[];
+  notes:                string;
 };
 
 export type StatusRecord = {

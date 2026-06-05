@@ -7,9 +7,8 @@ import { ThreadPanel } from "@/components/ThreadPanel";
 import { getCurrentUser, type AppUser } from "@/lib/mockUser";
 import {
   readLiveClaims, readStatusMap, updateClaimStatus,
-  type LiveClaim, type ClaimStatus,
+  type LiveClaim, type ClaimStatus, type ReceiptMeta,
 } from "@/lib/claimStore";
-import { readLocalNotifs } from "@/lib/claimStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +17,8 @@ type QueueItem = {
   amountAed: number; submitted: string; status: ClaimStatus;
   submittedAt: number; isLive?: boolean; rejectReason?: string;
   assignedToMe?: boolean;
+  receipts?: ReceiptMeta[];
+  notes?: string;
 };
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
@@ -151,6 +152,49 @@ function ClaimDetailPanel({ claim, onClose, onApprove, onReject, onPaid }: {
             </button>
           )}
 
+          {/* Notes */}
+          {claim.notes && (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">Notes</p>
+              <p className="text-sm text-gray-700">{claim.notes}</p>
+            </div>
+          )}
+
+          {/* Receipts */}
+          <div>
+            <p className="mb-2 text-sm font-bold text-gray-900">
+              Receipts {claim.receipts && claim.receipts.length > 0 && `(${claim.receipts.length})`}
+            </p>
+            {!claim.receipts || claim.receipts.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 py-4 text-center">
+                <p className="text-xs text-gray-400">No receipts attached</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {claim.receipts.map((r, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                    {r.previewUrl && r.type.startsWith("image/") ? (
+                      <img src={r.previewUrl} alt={r.name}
+                        className="h-12 w-12 rounded-lg border border-gray-200 object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-400">
+                        {r.type === "application/pdf" ? "PDF" : "IMG"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-gray-900">{r.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {r.size < 1024 ? `${r.size} B`
+                          : r.size < 1048576 ? `${(r.size / 1024).toFixed(1)} KB`
+                          : `${(r.size / 1048576).toFixed(1)} MB`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Thread */}
           <div>
             <p className="mb-3 text-sm font-bold text-gray-900">Discussion</p>
@@ -184,8 +228,9 @@ export default function FinancePage() {
       amountAed: c.amountAed, submitted: timeAgo(c.submittedAt),
       status: (sm[c.reference]?.status ?? c.status) as ClaimStatus,
       rejectReason: sm[c.reference]?.reason, submittedAt: c.submittedAt, isLive: true,
-      // Mark if this claim was assigned to the current Finance user
       assignedToMe: c.assignedFinanceEmail === me.email,
+      receipts: c.receipts ?? [],
+      notes: c.notes ?? "",
     }));
     const liveRefs = new Set(live.map((c) => c.reference));
     const seeds = SEED.filter((s) => !liveRefs.has(s.reference)).map((s): QueueItem => ({
@@ -332,11 +377,76 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
+      {/* ── Mobile cards (completely separate from the desktop table) ── */}
+      <div className="mt-4 sm:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-400">No claims match this filter.</p>
+        ) : filtered.map((c) => {
+          const _new = isNew(c.submittedAt);
+          return (
+            <div key={c.id}
+              className={`rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden ${_new ? "border-red-200" : ""}`}
+              style={_new ? { animation: "slideDown .35s ease" } : {}}>
+              <div className="p-4">
+                {/* Top row */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="font-bold text-gray-900">{c.employee}</p>
+                      {_new && <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase text-white" style={{ background: "#CC0000" }}>NEW</span>}
+                      {c.assignedToMe && <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[9px] font-bold text-blue-700">Mine</span>}
+                    </div>
+                    <p className="mt-0.5 text-xs text-gray-400">{c.reference} · {c.department}</p>
+                  </div>
+                  <StatusBadge status={c.status} />
+                </div>
+
+                {/* Amount + date */}
+                <div className="mt-2 flex items-end justify-between">
+                  <p className="text-2xl font-extrabold text-gray-900 tabular-nums">{fmtAed(c.amountAed)}</p>
+                  <p className="text-xs text-gray-400">{c.submitted}</p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button onClick={() => setViewClaim(c)}
+                    className="h-12 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 active:bg-gray-50">
+                    👁 View
+                  </button>
+                  <button onClick={() => setViewClaim(c)}
+                    className="h-12 rounded-xl border border-purple-200 bg-purple-50 text-sm font-semibold text-purple-700">
+                    💬 Discuss
+                  </button>
+                  {(c.status === "Submitted" || c.status === "Review") && (
+                    <>
+                      <button onClick={() => setRejectTarget(c)}
+                        className="h-12 rounded-xl border border-red-200 text-sm font-semibold text-red-600">
+                        Reject
+                      </button>
+                      <button onClick={() => handleApprove(c)}
+                        className="h-12 rounded-xl text-sm font-bold text-white" style={{ background: "#16a34a" }}>
+                        Approve
+                      </button>
+                    </>
+                  )}
+                  {c.status === "Approved" && (
+                    <button onClick={() => handlePaid(c)}
+                      className="col-span-2 h-12 rounded-xl text-sm font-bold text-white bg-blue-600">
+                      Mark as Paid
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop table ── */}
+      <div className="mt-4 hidden overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm sm:block">
 
         {/* Desktop header — 7 columns */}
-        <div className="hidden border-b border-gray-100 bg-gray-50 px-5 py-3 sm:grid"
+        <div className="border-b border-gray-100 bg-gray-50 px-5 py-3 grid"
           style={{ gridTemplateColumns: "180px 150px 130px 100px 120px 160px 120px", minWidth: 980 }}>
           {["Employee","Reference","Amount (AED)","Submitted","Status","Actions","Discussion"].map((h) => (
             <span key={h} className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{h}</span>
@@ -351,53 +461,6 @@ export default function FinancePage() {
             return (
               <div key={c.id} className={`transition-colors ${_new ? "bg-red-50/40" : "hover:bg-gray-50/40"}`}
                 style={_new ? { animation: "slideDown .35s ease" } : {}}>
-
-                {/* ── Mobile card ── */}
-                <div className="p-4 sm:hidden">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <p className="font-bold text-gray-900">{c.employee}</p>
-                        {_new && <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase text-white" style={{ background: "#CC0000" }}>NEW</span>}
-                        {c.assignedToMe && <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[9px] font-bold text-blue-700">Assigned to you</span>}
-                      </div>
-                      <p className="mt-0.5 text-xs text-gray-400">{c.reference} · {c.department}</p>
-                    </div>
-                    <StatusBadge status={c.status} />
-                  </div>
-                  <p className="mt-2 text-xl font-extrabold text-gray-900 tabular-nums">{fmtAed(c.amountAed)}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{c.submitted}</p>
-
-                  {/* Mobile action buttons */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button onClick={() => setViewClaim(c)}
-                      className="h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                      👁 View claim
-                    </button>
-                    <button onClick={() => setViewClaim(c)}
-                      className="h-11 rounded-xl border border-purple-200 bg-purple-50 text-sm font-semibold text-purple-700">
-                      💬 Discuss
-                    </button>
-                    {(c.status === "Submitted" || c.status === "Review") && (
-                      <>
-                        <button onClick={() => setRejectTarget(c)}
-                          className="h-11 rounded-xl border border-red-200 text-sm font-semibold text-red-600">
-                          Reject
-                        </button>
-                        <button onClick={() => handleApprove(c)}
-                          className="h-11 rounded-xl text-sm font-bold text-white" style={{ background: "#16a34a" }}>
-                          Approve
-                        </button>
-                      </>
-                    )}
-                    {c.status === "Approved" && (
-                      <button onClick={() => handlePaid(c)}
-                        className="col-span-2 h-11 rounded-xl text-sm font-bold text-white bg-blue-600">
-                        Mark as Paid
-                      </button>
-                    )}
-                  </div>
-                </div>
 
                 {/* ── Desktop row ── */}
                 <div className="hidden items-center gap-3 px-5 py-3.5 sm:grid"

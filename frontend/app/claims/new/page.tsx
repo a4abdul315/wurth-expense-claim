@@ -7,7 +7,8 @@ import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
-import { saveLiveClaim, pushLocalNotif } from "@/lib/claimStore";
+import { saveLiveClaim, pushLocalNotif, type ReceiptMeta } from "@/lib/claimStore";
+import type { ReceiptMeta as UploadReceiptMeta } from "@/components/ReceiptUpload";
 
 function generateRef() {
   return `WPS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 8999)}`;
@@ -99,6 +100,7 @@ export default function NewClaimPage() {
   // Default to first regular Finance member (exclude Super User)
   const defaultFinance = FINANCE_TEAM.find((m) => m.role !== "FINANCE_SUPER")!;
   const [assignedFinanceId, setAssignedFinanceId] = useState<string>(defaultFinance.id);
+  const [receipts, setReceipts] = useState<UploadReceiptMeta[]>([]);
   const [loading,          setLoading]          = useState(false);
   const [submitted,        setSubmitted]        = useState(false);
   const [reference,        setReference]        = useState("");
@@ -131,6 +133,8 @@ export default function NewClaimPage() {
         assignedFinanceId:    finance.id,
         assignedFinanceName:  finance.name,
         assignedFinanceEmail: finance.email,
+        receipts:             receipts as ReceiptMeta[],
+        notes,
       });
 
       // 2. Push a notification for the assigned Finance person
@@ -268,7 +272,7 @@ export default function NewClaimPage() {
             </p>
           </div>
           <div className="p-4">
-            <ReceiptUpload />
+            <ReceiptUpload onChange={setReceipts} />
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Please attach all receipts you are claiming.
             </p>
