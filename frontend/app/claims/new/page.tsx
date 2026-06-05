@@ -6,7 +6,7 @@ import { ClaimLineItemsForm, type ExpenseCategory } from "@/components/ClaimLine
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
+import { getCurrentUser, FINANCE_TEAM, ASSIGNABLE_FINANCE } from "@/lib/mockUser";
 import { saveLiveClaim, pushLocalNotif, type ReceiptMeta } from "@/lib/claimStore";
 import { apiSubmitClaim } from "@/lib/apiClient";
 import type { ReceiptMeta as UploadReceiptMeta } from "@/components/ReceiptUpload";
@@ -99,7 +99,7 @@ export default function NewClaimPage() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [notes,            setNotes]            = useState("");
   // Default to first regular Finance member (exclude Super User)
-  const defaultFinance = FINANCE_TEAM.find((m) => m.role !== "FINANCE_SUPER")!;
+  const defaultFinance = ASSIGNABLE_FINANCE[0]!;
   const [assignedFinanceId, setAssignedFinanceId] = useState<string>(defaultFinance.id);
   const [receipts, setReceipts] = useState<UploadReceiptMeta[]>([]);
   const [loading,          setLoading]          = useState(false);
@@ -248,7 +248,7 @@ export default function NewClaimPage() {
           </p>
           {/* Only regular Finance members — Super user (Zeeshan) cannot be directly assigned by employees */}
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-2">
-            {FINANCE_TEAM.filter((m) => m.role !== "FINANCE_SUPER").map((member) => (
+            {ASSIGNABLE_FINANCE.map((member) => (
               <label
                 key={member.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${

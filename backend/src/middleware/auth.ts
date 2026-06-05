@@ -41,10 +41,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     if (!user) {
       // Auto-create user on first login
+      // Determine role from email domain/pattern
+      // PRODUCTION: role comes from Azure AD group membership, not email
       const id   = uid();
       const name = email.split("@")[0].replace(/\./g, " ");
-      const role = domain === "wuerth-professional.com" ? "FINANCE_SUPER"
-                 : ["k.rashidi","s.mohammed","o.farooq","n.alzaabi"].some(u => email.startsWith(u + "@")) ? "FINANCE"
+      const financeEmails = ["k.rashidi","s.mohammed","o.farooq","n.alzaabi","finance"];
+      const role = domain === "wuerth-professional.com"                         ? "FINANCE_SUPER"
+                 : financeEmails.some((u) => email.startsWith(u + "@"))         ? "FINANCE"
                  : "EMPLOYEE";
       await run(`INSERT INTO users (id, email, name, department, role) VALUES (?, ?, ?, 'General', ?)`, [id, email, name, role]);
       [user] = await query<Record<string,unknown>>(`SELECT * FROM users WHERE id = ?`, [id]);
