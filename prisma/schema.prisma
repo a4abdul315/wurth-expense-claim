@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  CLAIMANT
+  FINANCE
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum ExpenseClaimStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_FINANCE_REVIEW
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+enum ExpenseLineItemCategory {
+  TRAVEL
+  MEALS
+  ACCOMMODATION
+  OFFICE_SUPPLIES
+  CLIENT_ENTERTAINMENT
+  TRAINING
+  OTHER
+}
+
+enum AttachmentKind {
+  RECEIPT
+  INVOICE
+  SUPPORTING_DOCUMENT
+}
+
+enum AttachmentFileType {
+  IMAGE
+  PDF
+}
+
+enum AttachmentScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+  NOT_REQUIRED
+}
+
+enum CurrencyRateSource {
+  MANUAL
+  ECB
+  OPEN_EXCHANGE_RATES
+  CORPORATE_TREASURY
+}
+
+enum AuditAction {
+  USER_CREATED
+  USER_UPDATED
+  ROLE_ASSIGNED
+  ROLE_REVOKED
+  CLAIM_CREATED
+  CLAIM_UPDATED
+  CLAIM_SUBMITTED
+  CLAIM_APPROVED
+  CLAIM_REJECTED
+  CLAIM_PAID
+  CLAIM_CANCELLED
+  LINE_ITEM_CREATED
+  LINE_ITEM_UPDATED
+  LINE_ITEM_DELETED
+  ATTACHMENT_UPLOADED
+  ATTACHMENT_DELETED
+  CURRENCY_RATE_CREATED
+}
+
+model User {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  name           String
+  employeeNumber String?     @unique
+  department     String?
+  costCenter     String?
+  status         UserStatus  @default(ACTIVE)
+  lastLoginAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  roles                 UserRole[]
+  submittedClaims       ExpenseClaim[] @relation("ClaimantClaims")
+  financeReviewedClaims ExpenseClaim[] @relation("FinanceReviewedClaims")
+  paidClaims            ExpenseClaim[] @relation("PaidClaims")
+  uploadedAttachments   Attachment[]   @relation("UploadedAttachments")
+  auditLogs             AuditLog[]     @relation("ActorAuditLogs")
+
+  @@index([email])
+  @@index([status])
+  @@index([department])
+  @@index([costCenter])
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  role      RoleName
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model ExpenseClaim {
+  id                    String             @id @default(cuid())
+  claimNumber           String             @unique
+  claimantId            String
+  title                 String
+  businessPurpose       String?
+  status                ExpenseClaimStatus @default(DRAFT)
+  transactionCurrency   String             @db.Char(3)
+  reportingCurrency     String             @db.Char(3)
+  totalTransactionAmount Decimal            @default(0) @db.Decimal(14, 2)
+  totalReportingAmount   Decimal            @default(0) @db.Decimal(14, 2)
+  submittedAt           DateTime?
+  financeReviewedById   String?
+  financeReviewedAt     DateTime?
+  financeComment        String?
+  paidById              String?
+  paidAt                DateTime?
+  paymentReference      String?
+  rejectedReason        String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  claimant          User              @relation("ClaimantClaims", fields: [claimantId], references: [id])
+  financeReviewedBy User?             @relation("FinanceReviewedClaims", fields: [financeReviewedById], references: [id])
+  paidBy            User?             @relation("PaidClaims", fields: [paidById], references: [id])
+  lineItems         ExpenseLineItem[]
+  attachments       Attachment[]
+  auditLogs         AuditLog[]
+
+  @@index([claimantId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([financeReviewedById])
+  @@index([paidAt])
+  @@index([createdAt])
+}
+
+model ExpenseLineItem {
+  id                    String                  @id @default(cuid())
+  expenseClaimId        String
+  category              ExpenseLineItemCategory
+  expenseDate           DateTime
+  merchant              String?
+  description           String
+  transactionCurrency   String                  @db.Char(3)
+  transactionAmount     Decimal                 @db.Decimal(14, 2)
+  reportingCurrency     String                  @db.Char(3)
+  reportingAmount       Decimal                 @db.Decimal(14, 2)
+  currencyConversionId  String?
+  taxAmount             Decimal?                @db.Decimal(14, 2)
+  isBillable            Boolean                 @default(false)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  expenseClaim       ExpenseClaim        @relation(fields: [expenseClaimId], references: [id], onDelete: Cascade)
+  currencyConversion CurrencyConversion? @relation(fields: [currencyConversionId], references: [id])
+  attachments        Attachment[]
+
+  @@index([expenseClaimId])
+  @@index([category])
+  @@index([expenseDate])
+  @@index([currencyConversionId])
+}
+
+model Attachment {
+  id                String               @id @default(cuid())
+  expenseClaimId    String
+  expenseLineItemId String?
+  uploadedById      String
+  kind              AttachmentKind       @default(RECEIPT)
+  fileType          AttachmentFileType
+  originalFileName  String
+  storageBucket     String
+  storageKey        String               @unique
+  mimeType          String
+  fileSizeBytes     Int
+  checksumSha256    String?
+  scanStatus        AttachmentScanStatus @default(PENDING)
+  scanResult        String?
+  createdAt         DateTime             @default(now())
+  deletedAt         DateTime?
+
+  expenseClaim    ExpenseClaim     @relation(fields: [expenseClaimId], references: [id], onDelete: Cascade)
+  expenseLineItem ExpenseLineItem?  @relation(fields: [expenseLineItemId], references: [id], onDelete: SetNull)
+  uploadedBy      User             @relation("UploadedAttachments", fields: [uploadedById], references: [id])
+
+  @@index([expenseClaimId])
+  @@index([expenseLineItemId])
+  @@index([uploadedById])
+  @@index([scanStatus])
+  @@index([deletedAt])
+}
+
+model CurrencyConversion {
+  id               String             @id @default(cuid())
+  fromCurrency     String             @db.Char(3)
+  toCurrency       String             @db.Char(3)
+  rate             Decimal            @db.Decimal(18, 8)
+  source           CurrencyRateSource
+  sourceReference  String?
+  effectiveDate    DateTime
+  fetchedAt        DateTime?
+  createdById      String?
+  createdAt        DateTime           @default(now())
+
+  lineItems ExpenseLineItem[]
+
+  @@unique([fromCurrency, toCurrency, effectiveDate, source])
+  @@index([fromCurrency, toCurrency])
+  @@index([effectiveDate])
+  @@index([source])
+}
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  actorUserId    String?
+  expenseClaimId String?
+  action         AuditAction
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  createdAt      DateTime    @default(now())
+
+  actorUser    User?         @relation("ActorAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+  expenseClaim ExpenseClaim? @relation(fields: [expenseClaimId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([expenseClaimId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([requestId])
+  @@index([createdAt])
+}
+

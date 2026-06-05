@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  /* iOS safe-area helpers */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top,    0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* remove grey flash on tap (iOS/Android) */
+}
+
+html {
+  /* Smooth scroll everywhere */
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #f7f8fa;
+  color: #17202a;
+  /* Prevent text size inflation on orientation change (iOS) */
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  /* Prevent iOS from rounding inputs */
+  border-radius: 0;
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────── */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2;
+}
+
+/* ── Safe-area padding helpers ──────────────────────────────────── */
+.pb-safe        { padding-bottom: var(--safe-bottom); }
+.pt-safe        { padding-top:    var(--safe-top); }
+.pb-nav-safe    { padding-bottom: calc(64px + var(--safe-bottom)); } /* bottom-nav height */
+
+/* ── Prevent horizontal overflow on small screens ───────────────── */
+.overflow-x-safe {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* ── Touch scrolling in overflow containers ─────────────────────── */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+}
