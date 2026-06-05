@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ClaimLineItemsForm, type ExpenseCategory } from "@/components/ClaimLineItemsForm";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
-import { MOCK_USER, FINANCE_TEAM } from "@/lib/mockUser";
+import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
 import { saveLiveClaim } from "@/lib/claimStore";
 
 function generateRef() {
@@ -45,7 +45,7 @@ function SuccessCard({ reference, totalAed }: { reference: string; totalAed: num
           </span>
         </p>
         <p className="mt-1 text-xs text-slate-400">
-          Confirmation sent to {MOCK_USER.email}
+          Confirmation sent to {getCurrentUser().email}
         </p>
       </div>
 
@@ -106,9 +106,9 @@ export default function NewClaimPage() {
       saveLiveClaim({
         id: ref,
         reference: ref,
-        employee: MOCK_USER.name,
-        department: MOCK_USER.department,
-        email: MOCK_USER.email,
+        employee: getCurrentUser().name,
+        department: getCurrentUser().department,
+        email: getCurrentUser().email,
         amountAed: totals.totalAed,
         submittedAt: Date.now(),
         status: "Submitted",
@@ -148,12 +148,12 @@ export default function NewClaimPage() {
             <div>
               <p className="text-xs text-slate-500">Employee</p>
               <p className="mt-0.5 text-sm font-medium text-ink">
-                {MOCK_USER.lastName}, {MOCK_USER.firstName}
+                {getCurrentUser().lastName}, {getCurrentUser().firstName}
               </p>
             </div>
             <div>
               <p className="text-xs text-slate-500">Account No.</p>
-              <p className="mt-0.5 text-sm font-medium text-ink">{MOCK_USER.accountNo}</p>
+              <p className="mt-0.5 text-sm font-medium text-ink">{getCurrentUser().accountNo}</p>
             </div>
           </div>
         </div>
@@ -165,9 +165,9 @@ export default function NewClaimPage() {
             Pre-filled from your corporate account.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <ReadField label="Full name"  value={MOCK_USER.name} />
-            <ReadField label="Department" value={MOCK_USER.department} />
-            <ReadField label="Email"      value={MOCK_USER.email} />
+            <ReadField label="Full name"  value={getCurrentUser().name} />
+            <ReadField label="Department" value={getCurrentUser().department} />
+            <ReadField label="Email"      value={getCurrentUser().email} />
           </div>
         </div>
 
@@ -254,10 +254,10 @@ export default function NewClaimPage() {
             Pre-filled from your employee profile — never manually typed.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <ReadField label="Holder"     value={MOCK_USER.holder} />
-            <ReadField label="Bank"       value={MOCK_USER.bank}   />
-            <ReadField label="IBAN"       value={MOCK_USER.iban}   />
-            <ReadField label="SWIFT / BIC" value={MOCK_USER.swift} />
+            <ReadField label="Holder"     value={getCurrentUser().holder} />
+            <ReadField label="Bank"       value={getCurrentUser().bank}   />
+            <ReadField label="IBAN"       value={getCurrentUser().iban}   />
+            <ReadField label="SWIFT / BIC" value={getCurrentUser().swift} />
           </div>
         </div>
 

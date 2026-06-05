@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "@/lib/mockUser";
 
 const ALLOWED_DOMAIN = "wurth.ae";
+const FINANCE_DOMAIN = "wuerth-professional.com"; // Zeeshan's domain
 
 export default function LoginPage() {
   const router  = useRouter();
@@ -14,19 +16,32 @@ export default function LoginPage() {
   function handleContinue() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) { setError("Please enter your corporate email."); return; }
-    if (!trimmed.endsWith(`@${ALLOWED_DOMAIN}`)) {
+
+    const domain = trimmed.split("@")[1] ?? "";
+    if (domain !== ALLOWED_DOMAIN && domain !== FINANCE_DOMAIN) {
       setError(`Access restricted to @${ALLOWED_DOMAIN} accounts.`);
       return;
     }
+
     setError("");
     setLoading(true);
-    localStorage.setItem("wps_session", "1");
-    setTimeout(() => router.push("/dashboard"), 800);
+    signIn(trimmed);
+
+    // Finance users go to Finance dashboard; employees go to Dashboard
+    const isFinance = trimmed.endsWith("@" + FINANCE_DOMAIN) ||
+      ["k.rashidi","s.mohammed","o.farooq","n.alzaabi"].some(u => trimmed.startsWith(u + "@"));
+
+    setTimeout(() => router.push(isFinance ? "/finance" : "/dashboard"), 800);
   }
 
   function handleDemo() {
-    localStorage.setItem("wps_session", "1");
+    signIn("a.rehman@wurth.ae"); // Demo as Abdul Rehman (Employee)
     router.push("/dashboard");
+  }
+
+  function handleFinanceDemo() {
+    signIn("zk@wuerth-professional.com"); // Demo as Zeeshan (Finance Super)
+    router.push("/finance");
   }
 
   return (
@@ -149,16 +164,25 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="mt-5 flex items-center justify-between">
-              <span className="text-xs text-gray-400">@{ALLOWED_DOMAIN} only</span>
-              <button
-                type="button"
-                onClick={handleDemo}
-                className="rounded-lg px-3 py-1.5 text-sm font-semibold transition hover:bg-red-50"
-                style={{ color: "#CC0000" }}
-              >
-                Demo access →
-              </button>
+            <div className="mt-5 border-t border-gray-100 pt-4 space-y-2">
+              <p className="text-xs text-gray-400 mb-2">Quick demo access:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  className="rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  👤 Employee demo
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinanceDemo}
+                  className="rounded-lg border px-3 py-2.5 text-xs font-semibold transition hover:opacity-90"
+                  style={{ borderColor: "#CC0000", color: "#CC0000", background: "#fff0f0" }}
+                >
+                  💼 Finance demo
+                </button>
+              </div>
             </div>
           </div>
 

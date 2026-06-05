@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MOCK_USER } from "@/lib/mockUser";
+import { getCurrentUser } from "@/lib/mockUser";
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
@@ -91,7 +91,8 @@ function WurthLogo() {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const isFinance = MOCK_USER.role === "FINANCE" || MOCK_USER.role === "ADMIN";
+  const user     = getCurrentUser();
+  const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
 
   function isActive(href: string) {
     // Exact match for all routes — prevents /claims matching /claims/new
@@ -168,13 +169,16 @@ export function Sidebar() {
         <div className="flex items-center gap-3">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-            style={{ background: "#CC0000" }}
+            style={{ background: isFinance ? "#7c3aed" : "#CC0000" }}
           >
-            {MOCK_USER.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            {user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">{MOCK_USER.name}</p>
-            <p className="truncate text-xs text-slate-500">{MOCK_USER.department}</p>
+            <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+            <p className="truncate text-xs text-slate-500">
+              {user.department}
+              {isFinance && <span className="ml-1 text-purple-600">· Finance</span>}
+            </p>
           </div>
         </div>
       </div>
@@ -185,8 +189,9 @@ export function Sidebar() {
 // ─── Mobile bottom tab bar ─────────────────────────────────────────────────────
 
 export function MobileNav() {
-  const pathname = usePathname();
-  const isFinance = MOCK_USER.role === "FINANCE" || MOCK_USER.role === "ADMIN";
+  const pathname  = usePathname();
+  const user      = getCurrentUser();
+  const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
 
   const tabs = [
     ...employeeNav,
