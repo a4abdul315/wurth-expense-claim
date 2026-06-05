@@ -93,11 +93,17 @@ function WurthLogo() {
 export function Sidebar() {
   const pathname = usePathname();
 
-  // Read from localStorage on client — avoids SSR mismatch and updates on login
-  const [user, setUser] = useState<AppUser>(getCurrentUser());
-  useEffect(() => { setUser(getCurrentUser()); }, [pathname]); // re-check on every route change
+  // Always start with a stable default (avoids SSR/client hydration mismatch)
+  const [user,    setUser]    = useState<AppUser>(() => getCurrentUser());
+  const [mounted, setMounted] = useState(false);
 
-  const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
+  useEffect(() => {
+    setUser(getCurrentUser());
+    setMounted(true);
+  }, [pathname]);
+
+  // Only use role after hydration to avoid mismatch
+  const isFinance = mounted && (user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN");
 
   function isActive(href: string) {
     // Exact match for all routes — prevents /claims matching /claims/new
@@ -191,9 +197,10 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname  = usePathname();
-  const [user, setUser] = useState<AppUser>(getCurrentUser());
-  useEffect(() => { setUser(getCurrentUser()); }, [pathname]);
-  const isFinance = user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN";
+  const [user,    setUser]    = useState<AppUser>(() => getCurrentUser());
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setUser(getCurrentUser()); setMounted(true); }, [pathname]);
+  const isFinance = mounted && (user.role === "FINANCE" || user.role === "FINANCE_SUPER" || user.role === "ADMIN");
 
   // Finance users only see Finance nav; employees see employee nav
   const tabs = isFinance ? financeNav : [...employeeNav];
