@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
+import { pushLocalNotif } from "@/lib/claimStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,15 +128,21 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
     const invitee = FINANCE_TEAM.find((f) => f.id === inviteTarget);
     if (!invitee) return;
 
-    // Check not already in thread
+    // Enforce all rules
+    if (invitee.role === "FINANCE_SUPER") {
+      setError("The Finance Super User has automatic visibility — they cannot be invited.");
+      return;
+    }
+    if (invitee.role === "EMPLOYEE") {
+      setError("Only Finance team members can be invited to a thread.");
+      return;
+    }
     if (thread.participants.some((p) => p.email === invitee.email)) {
       setError(`${invitee.name} is already in this thread.`);
       return;
     }
-
-    // Check Finance role only
-    if (invitee.role === "EMPLOYEE") {
-      setError("Only Finance members can be invited.");
+    if (inviteLimitReached) {
+      setError("Only one additional Finance member can be invited per thread.");
       return;
     }
 
@@ -158,14 +165,38 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
     };
     saveThread(updated);
     setThread(updated);
+
+    // Push notification to the invited Finance member
+    pushLocalNotif({
+      forEmail:  invitee.email,
+      title:     `You've been invited to a claim discussion`,
+      body:      `${currentUser.name} invited you to discuss ${claimReference}.`,
+      claimRef:  claimId,
+      read:      false,
+    });
+
     setShowInvite(false);
     setInviteTarget("");
     setError("");
   }
 
-  // Finance members not already in thread
-  const canInvite = FINANCE_TEAM.filter(
-    (f) => f.role !== "EMPLOYEE" && !thread.participants.some((p) => p.email === f.email)
+  // ── Invite rules ──────────────────────────────────────────────────────────
+  // Rule 1: Only regular Finance (not Super User) can use the invite button
+  const canUseInvite = isFinance && currentUser.role !== "FINANCE_SUPER";
+
+  // Rule 2: Max 1 additional Finance member per thread (original + 1 invited = 2 total)
+  // Count non-super Finance participants already in thread
+  const regularInThread = thread.participants.filter(
+    (p) => p.role === "FINANCE"
+  ).length;
+  const inviteLimitReached = regularInThread >= 1; // already 1 invited → locked
+
+  // Rule 3: Eligible to invite = regular Finance, not already in thread, not current user, NOT Super User
+  const eligibleToInvite = FINANCE_TEAM.filter(
+    (f) =>
+      f.role !== "FINANCE_SUPER" &&          // Super User cannot be invited
+      f.email !== currentUser.email &&        // Not yourself
+      !thread.participants.some((p) => p.email === f.email) // Not already in
   );
 
   return (
@@ -256,31 +287,46 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
         <p className="mx-4 mb-2 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-600">{error}</p>
       )}
 
-      {/* Invite panel — Finance only */}
-      {isFinance && showInvite && (
+      {/* Invite panel — regular Finance only (not Super User) */}
+      {canUseInvite && showInvite && (
         <div className="border-t border-line bg-blue-50 px-4 py-3">
-          <p className="mb-2 text-xs font-bold text-blue-700">Invite a Finance team member</p>
-          <div className="flex gap-2">
-            <select value={inviteTarget} onChange={(e) => setInviteTarget(e.target.value)}
-              className="h-10 flex-1 rounded-lg border border-line bg-white px-2 text-sm">
-              <option value="">Select person…</option>
-              {canInvite.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}{f.role === "FINANCE_SUPER" ? " ★ Super" : ""}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={handleInvite} disabled={!inviteTarget}
-              className="h-10 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white disabled:opacity-50">
-              Invite
-            </button>
-            <button type="button" onClick={() => { setShowInvite(false); setError(""); }}
-              className="h-10 rounded-lg border border-line bg-white px-3 text-xs font-semibold text-slate-600">
-              Cancel
-            </button>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-blue-700">Invite a Finance team member</p>
+            {inviteLimitReached && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                Limit reached (1/1)
+              </span>
+            )}
           </div>
-          <p className="mt-1.5 text-[10px] text-blue-500">
-            Only Finance members can be invited. Employees cannot join.
+
+          {inviteLimitReached ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              One Finance member has already been invited. The limit is one additional member per thread.
+            </p>
+          ) : eligibleToInvite.length === 0 ? (
+            <p className="text-xs text-slate-500">No more Finance members available to invite.</p>
+          ) : (
+            <div className="flex gap-2">
+              <select value={inviteTarget} onChange={(e) => setInviteTarget(e.target.value)}
+                className="h-10 flex-1 rounded-lg border border-line bg-white px-2 text-sm">
+                <option value="">Select Finance member…</option>
+                {eligibleToInvite.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+              <button type="button" onClick={handleInvite} disabled={!inviteTarget}
+                className="h-10 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white disabled:opacity-50">
+                Invite
+              </button>
+              <button type="button" onClick={() => { setShowInvite(false); setError(""); }}
+                className="h-10 rounded-lg border border-line bg-white px-3 text-xs font-semibold text-slate-600">
+                Cancel
+              </button>
+            </div>
+          )}
+
+          <p className="mt-1.5 text-[10px] text-blue-400">
+            Super User (Zeeshan Khan) sees all threads automatically and cannot be invited.
           </p>
         </div>
       )}
@@ -294,13 +340,17 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             className="h-12 flex-1 rounded-lg border border-line bg-slate-50 px-3 text-sm focus:bg-white focus:border-brand-600 focus:outline-none"
           />
-          {/* Invite button — Finance users only */}
-          {isFinance && (
+          {/* Invite button — regular Finance only (not Super User) */}
+          {canUseInvite && (
             <button type="button"
               onClick={() => { setShowInvite(!showInvite); setError(""); }}
-              title="Invite Finance member"
-              className={`flex h-12 w-12 items-center justify-center rounded-lg border transition ${
-                showInvite ? "border-blue-300 bg-blue-100 text-blue-700" : "border-line bg-white text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+              title={inviteLimitReached ? "Invite limit reached (1/1)" : "Invite Finance member"}
+              className={`relative flex h-12 w-12 items-center justify-center rounded-lg border transition ${
+                inviteLimitReached
+                  ? "border-amber-200 bg-amber-50 text-amber-400 cursor-not-allowed"
+                  : showInvite
+                    ? "border-blue-300 bg-blue-100 text-blue-700"
+                    : "border-line bg-white text-slate-500 hover:bg-blue-50 hover:text-blue-600"
               }`}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -308,6 +358,9 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
                 <line x1="19" y1="8" x2="19" y2="14"/>
                 <line x1="22" y1="11" x2="16" y2="11"/>
               </svg>
+              {inviteLimitReached && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-white">✓</span>
+              )}
             </button>
           )}
           {/* Send button */}
