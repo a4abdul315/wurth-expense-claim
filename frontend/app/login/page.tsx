@@ -35,20 +35,22 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-white">
 
       {/* ── Left brand panel — desktop ── */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-between border-r border-gray-100 bg-white px-12 py-10">
+      <div className="hidden lg:flex lg:w-[52%] flex-col border-r border-gray-100 bg-white px-14 py-12">
 
-        <div className="flex flex-col gap-1.5">
-          <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 28, width: "auto", maxWidth: 160 }} />
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: "#CC0000" }}>
+        {/* Logo — top aligned */}
+        <div className="flex flex-col gap-1.5 mb-12">
+          <img src="/wurth-logo.svg" alt="WÜRTH" style={{ height: 32, width: "auto", maxWidth: 180 }} />
+          <p className="text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: "#CC0000" }}>
             Professional Solutions
           </p>
         </div>
 
+        {/* Headline + features — directly below logo */}
         <div className="max-w-md">
           <p className="text-xs font-bold uppercase tracking-[0.18em] mb-4" style={{ color: "#CC0000" }}>
             Corporate expense management
           </p>
-          <h1 className="text-[2.4rem] font-extrabold leading-tight text-gray-900">
+          <h1 className="text-[2.2rem] font-extrabold leading-tight text-gray-900">
             Submit expense claims with currency conversion to AED — from any device.
           </h1>
           <ul className="mt-8 space-y-3">
@@ -66,24 +68,28 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        {/* Finance team reference */}
-        <div className="rounded-xl border border-gray-100 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Finance team logins</p>
-          <div className="space-y-1">
-            {ASSIGNABLE_FINANCE.map((f) => (
-              <button key={f.email} type="button"
-                onClick={() => setEmail(f.email)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition text-left">
-                <span className="font-medium">{f.name}</span>
-                <span className="text-gray-400">{f.email}</span>
+        {/* Finance team quick-login — pushed to bottom */}
+        <div className="mt-auto pt-10">
+          <div className="rounded-xl border border-gray-100 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">
+              Finance team — click to fill
+            </p>
+            <div className="space-y-0.5">
+              {ASSIGNABLE_FINANCE.map((f) => (
+                <button key={f.email} type="button"
+                  onClick={() => setEmail(f.email)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 transition text-left">
+                  <span className="font-semibold">{f.name}</span>
+                  <span className="text-gray-400">{f.email}</span>
+                </button>
+              ))}
+              <button type="button"
+                onClick={() => setEmail("zk@wuerth-professional.com")}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs hover:bg-purple-50 transition text-left">
+                <span className="font-semibold text-purple-700">Zeeshan Khan ★ Super</span>
+                <span className="text-purple-400">zk@wuerth-professional.com</span>
               </button>
-            ))}
-            <button type="button"
-              onClick={() => setEmail("zk@wuerth-professional.com")}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs hover:bg-purple-50 transition text-left">
-              <span className="font-medium text-purple-700">Zeeshan Khan ★ Super</span>
-              <span className="text-purple-400">zk@wuerth-professional.com</span>
-            </button>
+            </div>
           </div>
         </div>
       </div>
