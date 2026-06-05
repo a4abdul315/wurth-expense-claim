@@ -42,9 +42,9 @@ export default function LoginPage() {
       {/* ── Left brand panel — desktop only ── */}
       <section className="hidden flex-col justify-between border-r border-line bg-white px-10 py-12 lg:flex lg:w-[55%]">
         {/* Logo */}
-        <div className="flex flex-col gap-1">
-          <img src="/wurth-logo.svg" alt="Würth" className="h-8 w-auto" />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-700">
+        <div className="flex flex-col gap-1.5">
+          <img src="/wurth-logo.svg" alt="Würth" style={{ height: 32, width: "auto", maxWidth: 200 }} />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-700">
             Professional Solutions
           </span>
         </div>
@@ -90,9 +90,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="mb-8 flex flex-col gap-1 lg:hidden">
-            <img src="/wurth-logo.svg" alt="Würth" className="h-7 w-auto" />
-            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-700">
+          <div className="mb-8 flex flex-col gap-1">
+            <img src="/wurth-logo.svg" alt="Würth" style={{ height: 26, width: "auto", maxWidth: 160 }} />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-700">
               Professional Solutions
             </span>
           </div>

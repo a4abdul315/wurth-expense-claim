@@ -53,20 +53,29 @@ const financeNav = [
 // ─── Würth logo ───────────────────────────────────────────────────────────────
 
 function WurthLogo({ collapsed }: { collapsed?: boolean }) {
+  if (collapsed) {
+    // Only show the shield mark when collapsed — first 34px of the SVG viewBox
+    return (
+      <div className="select-none">
+        <svg viewBox="0 0 34 36.4" width="28" height="30" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#CC0000" d="M33.3,14.3H0V0h13.9v5.6h5.6V0h13.9V14.3L33.3,14.3z M19.4,30.9v5.6c8-1.5,13.9-8.4,13.9-16.2v-0.3H0v0.3C0,28,5.9,34.9,13.9,36.4v-5.6H19.4L19.4,30.9z"/>
+        </svg>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 select-none">
-      {/* Official Würth SVG logo */}
+    <div className="select-none flex flex-col gap-1">
+      {/* Full Würth logo SVG — constrained to sidebar width */}
       <img
         src="/wurth-logo.svg"
-        alt="Würth Professional Solutions"
-        className={collapsed ? "h-7 w-auto" : "h-7 w-auto"}
-        style={{ minWidth: collapsed ? 28 : 120 }}
+        alt="Würth"
+        style={{ height: 28, width: "auto", maxWidth: 160 }}
       />
-      {!collapsed && (
-        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-700 leading-none whitespace-nowrap">
-          Professional Solutions
-        </p>
-      )}
+      {/* Professional Solutions subtitle */}
+      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-700 leading-none pl-px">
+        Professional Solutions
+      </p>
     </div>
   );
 }
