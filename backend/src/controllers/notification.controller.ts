@@ -1,22 +1,33 @@
-import { Request, Response } from "express";
-import { notificationStore } from "../data/store";
+import { Request, Response, NextFunction } from "express";
+import { query, run } from "../db/connection";
 
-/** GET /api/notifications — current user's notifications */
-export function getNotifications(req: Request, res: Response): void {
-  const notifs = notificationStore.findForUser(req.user!.id);
-  const unread = notificationStore.unreadCount(req.user!.id);
-  res.json({ data: notifs, meta: { unread } });
+/** GET /api/notifications */
+export async function getNotifications(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const notifs = await query(
+      `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+      [req.user!.id]
+    );
+    const [{ unread }] = await query<{unread:number}>(
+      `SELECT COUNT(*) AS unread FROM notifications WHERE user_id = ? AND is_read = 0`,
+      [req.user!.id]
+    );
+    res.json({ data: notifs, meta: { unread } });
+  } catch (err) { next(err); }
 }
 
 /** PATCH /api/notifications/:id/read */
-export function markRead(req: Request, res: Response): void {
-  const ok = notificationStore.markRead(req.params.id, req.user!.id);
-  if (!ok) { res.status(404).json({ error: "Notification not found" }); return; }
-  res.json({ data: { read: true } });
+export async function markRead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await run(`UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`, [req.params.id, req.user!.id]);
+    res.json({ data: { read: true } });
+  } catch (err) { next(err); }
 }
 
 /** POST /api/notifications/read-all */
-export function markAllRead(req: Request, res: Response): void {
-  notificationStore.markAllRead(req.user!.id);
-  res.json({ data: { success: true } });
+export async function markAllRead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    await run(`UPDATE notifications SET is_read = 1 WHERE user_id = ?`, [req.user!.id]);
+    res.json({ data: { success: true } });
+  } catch (err) { next(err); }
 }

@@ -1,90 +1,93 @@
 import { Request, Response, NextFunction } from "express";
-import { threadStore, notificationStore, claimStore, userStore } from "../data/store";
+import { query, run } from "../db/connection";
 
-const FINANCE_NOTIFY_EMAIL = "zk@wuerth-professional.com"; // Finance super user
+function uid() { return `${Date.now()}_${Math.random().toString(36).slice(2,7)}`; }
+
+async function getOrCreateThread(claimId: string): Promise<string> {
+  const [existing] = await query<{id:string}>(`SELECT id FROM claim_threads WHERE claim_id = ?`, [claimId]);
+  if (existing) return existing.id;
+  const threadId = uid();
+  await run(`INSERT INTO claim_threads (id, claim_id) VALUES (?, ?)`, [threadId, claimId]);
+  return threadId;
+}
 
 /** GET /api/threads/claim/:claimId */
-export function getThread(req: Request, res: Response): void {
-  const thread = threadStore.findByClaim(req.params.claimId);
-  if (!thread) { res.status(404).json({ error: "No thread for this claim yet" }); return; }
-  res.json({ data: thread });
+export async function getThread(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const threadId = await getOrCreateThread(req.params.claimId);
+    const messages     = await query(`SELECT tm.*, u.name AS author_name, u.role AS author_role FROM thread_messages tm JOIN users u ON u.id = tm.author_id WHERE tm.thread_id = ? ORDER BY tm.created_at ASC`, [threadId]);
+    const participants = await query(`SELECT tp.*, u.name, u.email, u.role FROM thread_participants tp JOIN users u ON u.id = tp.user_id WHERE tp.thread_id = ?`, [threadId]);
+    res.json({ data: { id: threadId, claimId: req.params.claimId, messages, participants } });
+  } catch (err) { next(err); }
 }
 
 /** POST /api/threads/claim/:claimId/messages */
-export function postMessage(req: Request, res: Response): void {
-  const { content } = req.body ?? {};
-  if (!content?.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
+export async function postMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { content } = req.body ?? {};
+    if (!content?.trim()) { res.status(400).json({ error: "content is required" }); return; }
 
-  const thread = threadStore.findByClaim(req.params.claimId);
-  if (!thread) { res.status(404).json({ error: "Thread not found" }); return; }
+    const threadId = await getOrCreateThread(req.params.claimId);
+    const msgId    = uid();
+    await run(
+      `INSERT INTO thread_messages (id, thread_id, author_id, content) VALUES (?, ?, ?, ?)`,
+      [msgId, threadId, req.user!.id, content.trim()]
+    );
 
-  // Check the user is a participant (or Finance_Super who can see all)
-  const user = userStore.findById(req.user!.id);
-  const isParticipant = thread.participants.some((p) => p.userId === req.user!.id);
-  const isSuperUser   = user?.role === "FINANCE_SUPER";
+    // Notify all participants
+    const participants = await query<{user_id:string}>(`SELECT user_id FROM thread_participants WHERE thread_id = ?`, [threadId]);
+    for (const p of participants) {
+      if (p.user_id === req.user!.id) continue;
+      await run(
+        `INSERT INTO notifications (id, user_id, type, title, body, claim_id, is_read) VALUES (?, ?, 'THREAD_MESSAGE', ?, ?, ?, 0)`,
+        [uid(), p.user_id, `New message from ${req.user!.name}`, content.trim().slice(0, 80), req.params.claimId]
+      );
+    }
 
-  if (!isParticipant && !isSuperUser) {
-    res.status(403).json({ error: "You are not a participant in this thread" });
-    return;
-  }
-
-  const msg = threadStore.addMessage(thread.id, req.user!.id, content.trim());
-  if (!msg) { res.status(500).json({ error: "Could not add message" }); return; }
-
-  // Notify all other participants
-  thread.participants
-    .filter((p) => p.userId !== req.user!.id)
-    .forEach((p) => {
-      notificationStore.create({
-        userId: p.userId, type: "THREAD_MESSAGE",
-        title:  `New message in claim ${thread.claimId}`,
-        body:   `${msg.authorName}: "${content.slice(0, 60)}..."`,
-        claimId: thread.claimId, threadId: thread.id, read: false,
-      });
-    });
-
-  // PRODUCTION: also send email to participants via SendGrid
-  // sendEmail({ to: participantEmails, subject: `Thread update — ${claim.reference}`, ... })
-  console.log(`[thread] New message in ${thread.claimId} — would email ${FINANCE_NOTIFY_EMAIL}`);
-
-  res.status(201).json({ data: msg });
+    const [msg] = await query(`SELECT tm.*, u.name AS author_name, u.role AS author_role FROM thread_messages tm JOIN users u ON u.id = tm.author_id WHERE tm.id = ?`, [msgId]);
+    res.status(201).json({ data: msg });
+  } catch (err) { next(err); }
 }
 
 /** POST /api/threads/claim/:claimId/invite */
-export function inviteParticipant(req: Request, res: Response, next: NextFunction): void {
-  const { inviteeId } = req.body ?? {};
-  if (!inviteeId) { res.status(400).json({ error: "inviteeId is required" }); return; }
+export async function inviteParticipant(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { inviteeEmail } = req.body ?? {};
+    if (!inviteeEmail) { res.status(400).json({ error: "inviteeEmail is required" }); return; }
 
-  const thread = threadStore.findByClaim(req.params.claimId);
-  if (!thread) { res.status(404).json({ error: "Thread not found" }); return; }
+    // Only Finance can invite
+    if (req.user!.role === "EMPLOYEE") {
+      res.status(403).json({ error: "Employees cannot invite others to a thread" }); return;
+    }
 
-  const result = threadStore.inviteParticipant(thread.id, req.user!.id, inviteeId);
+    const [invitee] = await query<{id:string; name:string; email:string; role:string}>(`SELECT * FROM users WHERE email = ?`, [inviteeEmail.toLowerCase()]);
+    if (!invitee) { res.status(404).json({ error: "User not found" }); return; }
+    if (invitee.role === "EMPLOYEE") { res.status(403).json({ error: "Cannot invite employees to Finance threads" }); return; }
 
-  if (!result.success) {
-    res.status(403).json({ error: result.error });
-    return;
-  }
+    const threadId = await getOrCreateThread(req.params.claimId);
 
-  // Notify the invited person
-  const invitee = userStore.findById(inviteeId);
-  if (invitee) {
-    notificationStore.create({
-      userId: inviteeId, type: "THREAD_INVITE",
-      title:  "You've been invited to a claim thread",
-      body:   `${req.user!.name} invited you to discuss claim ${req.params.claimId}`,
-      claimId: req.params.claimId, threadId: thread.id, read: false,
-    });
+    // Check already in thread
+    const [already] = await query(`SELECT id FROM thread_participants WHERE thread_id = ? AND user_id = ?`, [threadId, invitee.id]);
+    if (already) { res.status(409).json({ error: `${invitee.name} is already in this thread` }); return; }
 
-    // PRODUCTION: send email notification
-    console.log(`[thread] Invited ${invitee.email} to thread ${thread.id} — would send email`);
-  }
+    const partId = uid();
+    await run(
+      `INSERT INTO thread_participants (id, thread_id, user_id, invited_by) VALUES (?, ?, ?, ?)`,
+      [partId, threadId, invitee.id, req.user!.id]
+    );
 
-  res.status(201).json({ data: result.participant });
-}
+    // System message
+    await run(
+      `INSERT INTO thread_messages (id, thread_id, author_id, content) VALUES (?, ?, ?, ?)`,
+      [uid(), threadId, req.user!.id, `${req.user!.name} invited ${invitee.name} to this thread.`]
+    );
 
-/** GET /api/threads/claim/:claimId/participants */
-export function getParticipants(req: Request, res: Response): void {
-  const thread = threadStore.findByClaim(req.params.claimId);
-  if (!thread) { res.status(404).json({ error: "Thread not found" }); return; }
-  res.json({ data: thread.participants });
+    // Notify invitee
+    await run(
+      `INSERT INTO notifications (id, user_id, type, title, body, claim_id, is_read) VALUES (?, ?, 'THREAD_INVITE', ?, ?, ?, 0)`,
+      [uid(), invitee.id, `You've been invited to a discussion`, `${req.user!.name} invited you to discuss claim ${req.params.claimId}`, req.params.claimId]
+    );
+
+    res.status(201).json({ data: { userId: invitee.id, name: invitee.name, email: invitee.email, role: invitee.role } });
+  } catch (err) { next(err); }
 }

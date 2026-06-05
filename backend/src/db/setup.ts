@@ -62,6 +62,18 @@ const TABLES = [
     INDEX idx_claim (claim_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
+  // ── Claim receipts ─────────────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS claim_receipts (
+    id         VARCHAR(36)  NOT NULL PRIMARY KEY,
+    claim_id   VARCHAR(36)  NOT NULL,
+    file_name  VARCHAR(255) NOT NULL,
+    file_size  INT          NOT NULL DEFAULT 0,
+    mime_type  VARCHAR(100) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (claim_id) REFERENCES expense_claims(id) ON DELETE CASCADE,
+    INDEX idx_claim (claim_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
   // ── Claim threads ──────────────────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS claim_threads (
     id         VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -72,15 +84,13 @@ const TABLES = [
 
   // ── Thread messages ────────────────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS thread_messages (
-    id          VARCHAR(36) NOT NULL PRIMARY KEY,
-    thread_id   VARCHAR(36) NOT NULL,
-    author_id   VARCHAR(36) NOT NULL,
-    author_name VARCHAR(200) NOT NULL,
-    author_role VARCHAR(50)  NOT NULL,
-    content     TEXT NOT NULL,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id         VARCHAR(36) NOT NULL PRIMARY KEY,
+    thread_id  VARCHAR(36) NOT NULL,
+    author_id  VARCHAR(36) NOT NULL,
+    content    TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (thread_id) REFERENCES claim_threads(id) ON DELETE CASCADE,
-    FOREIGN KEY (author_id)  REFERENCES users(id),
+    FOREIGN KEY (author_id) REFERENCES users(id),
     INDEX idx_thread (thread_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 

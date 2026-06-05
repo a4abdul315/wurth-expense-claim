@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser, FINANCE_TEAM } from "@/lib/mockUser";
 import { saveLiveClaim, pushLocalNotif, type ReceiptMeta } from "@/lib/claimStore";
+import { apiSubmitClaim } from "@/lib/apiClient";
 import type { ReceiptMeta as UploadReceiptMeta } from "@/components/ReceiptUpload";
 
 function generateRef() {
@@ -95,7 +96,7 @@ export default function NewClaimPage() {
 
   const [totals, setTotals] = useState({ totalAed: 0, totalEur: 0 });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [notes,            setNotes]            = useState("");
   // Default to first regular Finance member (exclude Super User)
   const defaultFinance = FINANCE_TEAM.find((m) => m.role !== "FINANCE_SUPER")!;
@@ -110,47 +111,66 @@ export default function NewClaimPage() {
     setCategories(data.categories);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (totals.totalAed === 0) return;
     setLoading(true);
 
-    // PRODUCTION: POST /api/claims/:id/submit → PDF generated → email Finance
-    setTimeout(() => {
-      const ref      = generateRef();
-      const user     = getCurrentUser();
-      const finance  = FINANCE_TEAM.find((f) => f.id === assignedFinanceId)!;
+    const user    = getCurrentUser();
+    const finance = FINANCE_TEAM.find((f) => f.id === assignedFinanceId)!;
 
-      // 1. Save claim to localStorage (Finance dashboard picks it up in real-time)
-      saveLiveClaim({
-        id:                   ref,
-        reference:            ref,
-        employee:             user.name,
-        department:           user.department,
-        email:                user.email,
-        amountAed:            totals.totalAed,
-        submittedAt:          Date.now(),
-        status:               "Submitted",
-        assignedFinanceId:    finance.id,
-        assignedFinanceName:  finance.name,
-        assignedFinanceEmail: finance.email,
-        receipts:             receipts as ReceiptMeta[],
+    try {
+      // Submit to MySQL via Express backend
+      const submitted = await apiSubmitClaim({
+        email:             user.email,
+        lines:             categories.flatMap((c) =>
+          c.items.filter((l) => l.amount && Number(l.amount) > 0).map((l) => ({
+            category: c.label, eventName: l.eventName,
+            description: l.description || c.label,
+            date: l.date || new Date().toISOString().slice(0, 10),
+            country: l.country, currency: l.currency,
+            amount: Number(l.amount), receiptNo: l.receiptNo,
+          }))
+        ),
         notes,
+        assignedFinanceId: finance.email, // backend matches by email
+        receipts: receipts.map((r) => ({ name: r.name, size: r.size, type: r.type })),
       });
 
-      // 2. Push a notification for the assigned Finance person
-      pushLocalNotif({
-        forEmail:  finance.email,
-        title:     `New claim from ${user.name}`,
-        body:      `${ref} · AED ${totals.totalAed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} — assigned to you for review.`,
-        claimRef:  ref,
-        read:      false,
+      const ref = String(submitted.reference ?? generateRef());
+
+      // Also save to localStorage for real-time Finance dashboard badge
+      saveLiveClaim({
+        id: String(submitted.id ?? ref), reference: ref,
+        employee: user.name, department: user.department, email: user.email,
+        amountAed: totals.totalAed, submittedAt: Date.now(), status: "Submitted",
+        assignedFinanceId: finance.id, assignedFinanceName: finance.name,
+        assignedFinanceEmail: finance.email,
+        receipts: receipts as ReceiptMeta[], notes,
       });
 
       setReference(ref);
       setSubmitted(true);
+    } catch {
+      // Fallback to localStorage-only if backend unavailable
+      const ref = generateRef();
+      saveLiveClaim({
+        id: ref, reference: ref, employee: user.name, department: user.department,
+        email: user.email, amountAed: totals.totalAed, submittedAt: Date.now(),
+        status: "Submitted", assignedFinanceId: finance.id,
+        assignedFinanceName: finance.name, assignedFinanceEmail: finance.email,
+        receipts: receipts as ReceiptMeta[], notes,
+      });
+      pushLocalNotif({
+        forEmail: finance.email, title: `New claim from ${user.name}`,
+        body: `${ref} · AED ${totals.totalAed.toFixed(2)} — assigned to you.`,
+        claimRef: ref, read: false,
+      });
+      setReference(ref);
+      setSubmitted(true);
+    } finally {
       setLoading(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 1200);
+    }
   }
 
   if (submitted) {
