@@ -44,7 +44,7 @@ export function ReceiptUpload() {
     <section className="rounded border border-line bg-white p-4 shadow-soft sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-ink">Receipts</h2>
-        <label className="focus-within:ring-brand-600 inline-flex h-10 cursor-pointer items-center rounded border border-line bg-white px-3 text-sm font-semibold text-ink transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-offset-2">
+        <label className="focus-within:ring-brand-600 inline-flex h-12 cursor-pointer items-center rounded-lg border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-offset-2">
           Camera
           <input
             type="file"

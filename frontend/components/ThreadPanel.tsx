@@ -286,7 +286,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            className="h-10 flex-1 rounded-lg border border-line bg-slate-50 px-3 text-sm focus:bg-white focus:border-brand-600 focus:outline-none"
+            className="h-12 flex-1 rounded-lg border border-line bg-slate-50 px-3 text-sm focus:bg-white focus:border-brand-600 focus:outline-none"
           />
           {/* Invite button — Finance only */}
           {isFinance && (
@@ -294,7 +294,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
               type="button"
               onClick={() => { setShowInvite(!showInvite); setError(""); }}
               title="Invite Finance member"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+              className="flex h-12 w-12 items-center justify-center rounded-lg border border-line bg-white text-slate-500 hover:bg-blue-50 hover:text-blue-600"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -308,7 +308,7 @@ export function ThreadPanel({ claimId, claimReference }: { claimId: string; clai
             type="button"
             onClick={handleSend}
             disabled={!message.trim() || sending}
-            className="flex h-10 w-10 items-center justify-center rounded-lg disabled:opacity-40"
+            className="flex h-12 w-12 items-center justify-center rounded-lg disabled:opacity-40"
             style={{ background: "#CC0000" }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

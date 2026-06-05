@@ -83,7 +83,9 @@ export default function NewClaimPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [notes,            setNotes]            = useState("");
-  const [assignedFinanceId, setAssignedFinanceId] = useState<string>(FINANCE_TEAM[0].id);
+  // Default to first regular Finance member (exclude Super User)
+  const defaultFinance = FINANCE_TEAM.find((m) => m.role !== "FINANCE_SUPER")!;
+  const [assignedFinanceId, setAssignedFinanceId] = useState<string>(defaultFinance.id);
   const [loading,          setLoading]          = useState(false);
   const [submitted,        setSubmitted]        = useState(false);
   const [reference,        setReference]        = useState("");
@@ -192,8 +194,9 @@ export default function NewClaimPage() {
           <p className="mt-0.5 text-xs text-slate-400">
             Select one Finance team member to review this claim. They will be notified immediately.
           </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {FINANCE_TEAM.map((member) => (
+          {/* Only regular Finance members — Super user (Zeeshan) cannot be directly assigned by employees */}
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-2">
+            {FINANCE_TEAM.filter((m) => m.role !== "FINANCE_SUPER").map((member) => (
               <label
                 key={member.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
@@ -213,18 +216,19 @@ export default function NewClaimPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink truncate">{member.name}</p>
                   <p className="text-xs text-slate-400 truncate">{member.email}</p>
-                  {member.role === "FINANCE_SUPER" && (
-                    <span className="mt-0.5 inline-block rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
-                      Super user
-                    </span>
-                  )}
                 </div>
               </label>
             ))}
           </div>
-          <p className="mt-2 text-[10px] text-slate-400">
-            You can only assign one person. They may invite other Finance members to the discussion thread.
-          </p>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p className="text-[11px] text-amber-700">
+              You can assign to one Finance reviewer only. The Finance Super User (Zeeshan Khan) has visibility over all claims automatically and cannot be directly assigned.
+            </p>
+          </div>
         </div>
 
         {/* ── Receipt upload ── */}

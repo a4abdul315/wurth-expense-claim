@@ -43,8 +43,11 @@ const CATEGORY_DEFS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Module-level counter guarantees unique IDs even when called in the same millisecond
+let _counter = 0;
 function uid(p: string) {
-  return `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  _counter += 1;
+  return `${p}_${_counter}_${Date.now()}`;
 }
 function blank(catId: string): LineItem {
   return {
@@ -74,7 +77,7 @@ function fmtEur(n: number, eurRate: number) {
 // ─── Live rates hook ──────────────────────────────────────────────────────────
 
 // Reads from the Express backend. Falls back to static rates if backend is offline.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 function useRates() {
   const [rates, setRates] = useState<Record<Currency, number>>(FALLBACK_RATES);
@@ -199,7 +202,7 @@ export function ClaimLineItemsForm({ onTotalsChange }: Props) {
               <button
                 type="button"
                 onClick={() => addLine(cat.id)}
-                className="flex h-8 items-center rounded px-3 text-xs font-semibold text-brand-700 active:bg-brand-50 sm:h-7"
+                className="flex h-11 items-center rounded-lg px-4 text-sm font-semibold text-brand-700 active:bg-brand-50 sm:h-8 sm:px-3 sm:text-xs"
               >
                 + Add row
               </button>
@@ -350,9 +353,9 @@ function MobileLine({ line, index, rates, canRemove, onChange, onRemove }: LineP
             </span>
           </div>
 
-          <div>
+          <div className="col-span-2">
             <label className="block text-xs font-medium text-slate-600">Receipt No.</label>
-            <input className={`${inp} mt-1`} placeholder="Rcpt #"
+            <input className={`${inp} mt-1`} placeholder="e.g. R-001"
               value={line.receiptNo} onChange={(e) => onChange({ receiptNo: e.target.value })} />
           </div>
         </div>

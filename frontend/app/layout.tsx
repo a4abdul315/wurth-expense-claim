@@ -10,7 +10,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Würth Professional Solutions – Expense Claims",
   description: "Online expense claim portal for Würth Professional Solutions LLC, Dubai UAE",
-  appleWebApp: { statusBarStyle: "default", title: "WPS Claims" },
+  // appleWebApp removed — apple-mobile-web-app-capable is deprecated in modern iOS
 };
 
 export const viewport: Viewport = {

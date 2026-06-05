@@ -69,8 +69,7 @@ input,
 select,
 textarea {
   font: inherit;
-  /* Prevent iOS from rounding inputs */
-  border-radius: 0;
+  /* Do NOT force border-radius:0 — let Tailwind classes control rounding */
 }
 
 /* ── Focus ring ─────────────────────────────────────────────────── */
